@@ -8,7 +8,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static com.github.wubuku.aptos.utils.HexUtils.hexToAccountAddressBytes;
+
 public class StructTagUtils {
+    //public static final int ACCOUNT_ADDRESS_LENGTH = 32;
     private static final String COLON_COLON = "::";
     private static final String LT = "<";
     private static final String GT = ">";
@@ -19,13 +22,14 @@ public class StructTagUtils {
 
     public static TypeInfo toTypeInfo(StructTagUtils.StructTag t) {
         TypeInfo.Builder builder = new TypeInfo.Builder();
-        builder.accountAddress = AccountAddress.valueOf(HexUtils.hexToByteArray(t.getAddress()));
+        byte[] addressBytes = hexToAccountAddressBytes(t.getAddress());
+        builder.accountAddress = AccountAddress.valueOf(addressBytes);
         builder.moduleName = t.getModule();
         builder.structName = t.getName();
         return builder.build();
     }
 
-    public static com.github.wubuku.aptos.bean.TypeInfo toTypeInfoBean(StructTagUtils. StructTag t) {
+    public static com.github.wubuku.aptos.bean.TypeInfo toTypeInfoBean(StructTagUtils.StructTag t) {
         com.github.wubuku.aptos.bean.TypeInfo typeInfo = new com.github.wubuku.aptos.bean.TypeInfo();
         typeInfo.setAccountAddress(t.getAddress());
         typeInfo.setModuleName(t.getModule());

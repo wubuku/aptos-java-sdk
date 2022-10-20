@@ -5,6 +5,21 @@ import java.util.List;
 
 public class HexUtils {
 
+    /**
+     * Convert address hex to 32 bytes.
+     */
+    public static byte[] hexToAccountAddressBytes(String hex) {
+        byte[] addressBytes = HexUtils.hexToByteArray(hex);
+        if (addressBytes.length < 32) {
+            byte[] bs = new byte[32];
+            for (int i = 0; i < addressBytes.length; i++) {
+                bs[bs.length - addressBytes.length - i] = addressBytes[i];
+            }
+            addressBytes = bs;
+        }
+        return addressBytes;
+    }
+
     public static byte[][] hexArrayToByteArrays(String[] hs) {
         List<byte[]> bytesList = new ArrayList<>(hs.length);
         for (String h : hs) {

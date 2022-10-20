@@ -3,9 +3,8 @@ package com.github.wubuku.aptos;
 import com.github.wubuku.aptos.bean.Transaction;
 import com.github.wubuku.aptos.bean.*;
 import com.github.wubuku.aptos.types.*;
-import com.github.wubuku.aptos.utils.HexUtils;
-import com.github.wubuku.aptos.utils.NodeApiUtils;
-import com.github.wubuku.aptos.utils.SignatureUtils;
+import com.github.wubuku.aptos.types.TypeInfo;
+import com.github.wubuku.aptos.utils.*;
 import com.novi.bcs.BcsSerializer;
 import com.novi.serde.Bytes;
 import com.novi.serde.SerializationError;
@@ -18,6 +17,13 @@ import java.util.List;
 public class MainTests {
 
     public static void main(String[] args) throws IOException {
+
+//        String formattedAddress = NodeApiUtils.formatPathSegmentAccountAddress(
+//                "0xc3dbe4f07390f05b19ccfc083fc6aa5bc5d75621d131fc49557c8f4bbc11716");
+//        System.out.println(formattedAddress);
+//        TypeInfo typeInfo = StructTagUtils.toTypeInfo(StructTagUtils.parseStructTag("0x1::aptos_coin::AptosCoin"));
+//        System.out.println(typeInfo);
+        //if (true) return;
 
         //String baseUrl = "https://fullnode.devnet.aptoslabs.com/v1";
         //ChainId chainId = new ChainId((byte) 32); // devnet chain Id.
