@@ -3,8 +3,10 @@ package com.github.wubuku.aptos;
 import com.github.wubuku.aptos.bean.Transaction;
 import com.github.wubuku.aptos.bean.*;
 import com.github.wubuku.aptos.types.*;
-import com.github.wubuku.aptos.types.TypeInfo;
-import com.github.wubuku.aptos.utils.*;
+import com.github.wubuku.aptos.utils.HexUtils;
+import com.github.wubuku.aptos.utils.NodeApiUtils;
+import com.github.wubuku.aptos.utils.SignatureUtils;
+import com.github.wubuku.aptos.utils.StructTagUtils;
 import com.novi.bcs.BcsSerializer;
 import com.novi.serde.Bytes;
 import com.novi.serde.SerializationError;
@@ -17,13 +19,8 @@ import java.util.List;
 public class MainTests {
 
     public static void main(String[] args) throws IOException {
-
-//        String formattedAddress = NodeApiUtils.formatPathSegmentAccountAddress(
-//                "0xc3dbe4f07390f05b19ccfc083fc6aa5bc5d75621d131fc49557c8f4bbc11716");
-//        System.out.println(formattedAddress);
-//        TypeInfo typeInfo = StructTagUtils.toTypeInfo(StructTagUtils.parseStructTag("0x1::aptos_coin::AptosCoin"));
-//        System.out.println(typeInfo);
-        //if (true) return;
+        testFormatStructTags();
+        if (true) return;
 
         //String baseUrl = "https://fullnode.devnet.aptoslabs.com/v1";
         //ChainId chainId = new ChainId((byte) 32); // devnet chain Id.
@@ -265,8 +262,39 @@ public class MainTests {
 //        System.out.println(resource.getData().getTable().getHandle());
 //        //if (true) return;
 
-
         System.out.println("Seem all Ok.");
+    }
+
+    private static void testFormatStructTags() {
+        String a = StructTagUtils.format(StructTagUtils.parseStructTag(
+                "0xc3dbe4f07390f05b19ccfc083fc6aa5bc5d75621d131fc49557c8f4bbc11716::test::S"));
+        System.out.println(a);
+        a = StructTagUtils.format(StructTagUtils.parseStructTag(
+                "0x0c3dbe4f07390f05b19ccfc083fc6aa5bc5d75621d131fc49557c8f4bbc11716::test::Foo<u8>"));
+        System.out.println(a);
+        a = StructTagUtils.format(StructTagUtils.parseStructTag(
+                "0x0c3dbe4f07390f05b19ccfc083fc6aa5bc5d75621d131fc49557c8f4bbc11716::test::Foo<0x00101::coin::CoinInfo>"));
+        System.out.println(a);
+        a = StructTagUtils.format(StructTagUtils.parseStructTag("0x01::coin::CoinInfo<0x1111::coin::LP<u8, u64,u128>>"));
+        System.out.println(a);
+        a = StructTagUtils.format(StructTagUtils.parseStructTag("0x01::coin::CoinInfo<0x1111::coin::LP<0x00101::coin::CoinInfo, 0x00101::coin::CoinInfo,0x00101::coin::CoinInfo>>"));
+        System.out.println(a);
+        a = StructTagUtils.format(StructTagUtils.parseStructTag("0x0101::coin::CoinInfo<0x1111::coin::LP<u8,0x99911::test::D,u128>>"));
+        System.out.println(a);
+        a = StructTagUtils.format(StructTagUtils.parseStructTag("0x0101::coin::CoinInfo<0x1111::coin::LP<0x00101::coin::CoinInfo,0x99911::test::D,0x00101::coin::CoinInfo<0x00101::coin::CoinInfo>>>"));
+        System.out.println(a);
+//        a = StructTagUtils.format(StructTagUtils.parseStructTag("0x00101::coin::CoinInfo<0x1111::coin::LP<vector<u8>,0x99911::test::D>>"));
+//        System.out.println(a);
+        a = StructTagUtils.format(StructTagUtils.parseStructTag("0x00101::coin::CoinInfo<0x1111::coin::LP<0x00101::coin::CoinInfo<0x00101::coin::CoinInfo>,0x99911::test::D>>"));
+        System.out.println(a);
+        //a = StructTagUtils.format(StructTagUtils.parseStructTag("0x00101::coin::CoinInfo<0x1111::coin::LP<0x1::coin::CoinInfo<u8, u64>, u8, vector<u8>,0x99911::test::D>>"));
+        //System.out.println(a);
+//        if (true) return;
+//        String formattedAddress = NodeApiUtils.formatPathSegmentAccountAddress(
+//                "0xc3dbe4f07390f05b19ccfc083fc6aa5bc5d75621d131fc49557c8f4bbc11716");
+//        System.out.println(formattedAddress);
+//        TypeInfo typeInfo = StructTagUtils.toTypeInfo(StructTagUtils.parseStructTag("0x1::aptos_coin::AptosCoin"));
+//        System.out.println(typeInfo);
     }
 
     private static Bytes encode_u8vector_argument(Bytes arg) {
