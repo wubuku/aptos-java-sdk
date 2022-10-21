@@ -580,7 +580,7 @@ public class NodeApiUtils {
     private static Request newGetAccountResourceRequest(String baseUrl, String accountAddress, String resourceType, String ledgerVersion) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
-                .addPathSegment(formatPathSegmentAccountAddress(accountAddress))
+                .addPathSegment(accountAddress)
                 .addPathSegment("resource")
                 .addPathSegment(resourceType);
         if (ledgerVersion != null) {
@@ -593,7 +593,7 @@ public class NodeApiUtils {
     private static Request newGetAccountModuleRequest(String baseUrl, String accountAddress, String moduleName, String ledgerVersion) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
-                .addPathSegment(formatPathSegmentAccountAddress(accountAddress))
+                .addPathSegment(accountAddress)
                 .addPathSegment("module")
                 .addPathSegment(moduleName);
         if (ledgerVersion != null) {
@@ -606,7 +606,7 @@ public class NodeApiUtils {
     private static Request newGetAccountResourcesRequest(String baseUrl, String accountAddress, String ledgerVersion) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
-                .addPathSegment(formatPathSegmentAccountAddress(accountAddress))
+                .addPathSegment(accountAddress)
                 .addPathSegment("resources");
         if (ledgerVersion != null) {
             builder.addQueryParameter("ledger_version", ledgerVersion);
@@ -618,7 +618,7 @@ public class NodeApiUtils {
     private static Request newGetAccountModulesRequest(String baseUrl, String accountAddress, String ledgerVersion) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
-                .addPathSegment(formatPathSegmentAccountAddress(accountAddress))
+                .addPathSegment(accountAddress)
                 .addPathSegment("modules");
         if (ledgerVersion != null) {
             builder.addQueryParameter("ledger_version", ledgerVersion);
@@ -630,7 +630,7 @@ public class NodeApiUtils {
     private static Request newGetAccountRequest(String baseUrl, String accountAddress) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
-                .addPathSegment(formatPathSegmentAccountAddress(accountAddress));
+                .addPathSegment(accountAddress);
         HttpUrl url = builder.build();
         return new Request.Builder().url(url).build();
     }
@@ -640,7 +640,7 @@ public class NodeApiUtils {
                                                Long start, Integer limit) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
-                .addPathSegment(formatPathSegmentAccountAddress(accountAddress))
+                .addPathSegment(accountAddress)
                 .addPathSegment("events")
                 .addPathSegment(eventHandleStruct)
                 .addPathSegment(eventHandleFieldName);
@@ -658,7 +658,7 @@ public class NodeApiUtils {
                                                                String creationNumber, Long start, Integer limit) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
-                .addPathSegment(formatPathSegmentAccountAddress(accountAddress))
+                .addPathSegment(accountAddress)
                 .addPathSegment("events")
                 .addPathSegment(creationNumber);
         if (start != null) {
@@ -707,7 +707,7 @@ public class NodeApiUtils {
     private static Request newGetAccountTransactionsRequest(String baseUrl, String accountAddress, Long start, Integer limit) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
-                .addPathSegment(formatPathSegmentAccountAddress(accountAddress))
+                .addPathSegment(accountAddress)
                 .addPathSegment("transactions");
         if (start != null) {
             builder.addQueryParameter("start", start.toString());
@@ -785,7 +785,7 @@ public class NodeApiUtils {
         throw new NodeApiException(response.code(), aptosError, response.request().url().toString(), null);
     }
 
-    public static String formatPathSegmentAccountAddress(String accountAddress) {
-        return HexUtils.byteArrayToHexWithPrefix(HexUtils.hexToAccountAddressBytes(accountAddress));
-    }
+//    private static String formatPathSegmentAccountAddress(String accountAddress) {
+//        return HexUtils.byteArrayToHexWithPrefix(HexUtils.hexToAccountAddressBytes(accountAddress));
+//    }
 }
