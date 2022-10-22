@@ -267,7 +267,9 @@ public class MainTests {
 
     private static void testFormatStructTags() {
         String a1 = StructTagUtils.format(StructTagUtils.parseStructTag(
-                "0x00101::coin::CoinInfo<0x1111::coin::LP<0x1::coin::CoinInfo<u8, u64>, u8, vector<u8>,0x99911::test::D>>"));
+                "0x00101::coin::CoinInfo<" +
+                        "0x1111::coin::LP<0x1::coin::CoinInfo<u8, u64>, u8, vector<vector<u8>>,0x99911::test::D>" +
+                        ">"));
         System.out.println(a1);
         //if (true) return;
         String a = StructTagUtils.format(StructTagUtils.parseStructTag(
@@ -295,7 +297,9 @@ public class MainTests {
                 "0x00101::coin::CoinInfo<0x1111::coin::LP<vector<u8>,0x99911::test::D>>"));
         System.out.println(a);
         a = StructTagUtils.format(StructTagUtils.parseStructTag(
-                "0x00101::coin::CoinInfo<0x1111::coin::LP<0x00101::coin::CoinInfo<0x00101::coin::CoinInfo>,0x99911::test::D>>"));
+                "0x00101::coin::CoinInfo<" +
+                        "0x1111::coin::LP<0x00101::coin::CoinInfo<0x00101::coin::CoinInfo>,0x99911::test::D>" +
+                        ">"));
         System.out.println(a);
 
 //        String formattedAddress = NodeApiUtils.formatPathSegmentAccountAddress(

@@ -114,20 +114,20 @@ public class StructTagUtils {
             }
             structName = parts[2].substring(0, idx_lt).trim();
             String ts = parts[2].substring(idx_lt + 1, idx_gt);
-            if (isOneStructTagWithTypeParams(ts)) {
-                typeParams = Collections.singletonList(parseStructTag(ts));
-                //System.out.println("parsed type param: " + typeParams.get(0));
-            } else {
-                typeParams = readTypeTagList(ts);
-            }
+//            if (isOneStructTagWithTypeParams(ts)) {
+//                typeParams = Collections.singletonList(parseStructTag(ts));
+//                System.out.println("parsed type param: " + ts + ", " + typeParams.get(0));
+//            } else {
+            typeParams = readTypeTagList(ts);
+//            }
         }
         return new StructTag(address, moduleName, structName, typeParams);
     }
 
-    private static boolean isOneStructTagWithTypeParams(String ts) {
-        // "0x1::coin::CoinInfo<T>" or "0x1::coin::CoinInfo<T, ...>"
-        return startsWithStructTagWithTypeParams(ts) && ts.endsWith(GT);
-    }
+//    private static boolean isOneStructTagWithTypeParams(String ts) {
+//        // "0x1::coin::CoinInfo<T>" or "0x1::coin::CoinInfo<T, ...>"
+//        return startsWithStructTagWithTypeParams(ts) && ts.endsWith(GT);
+//    }
 
     private static boolean startsWithStructTagWithTypeParams(String ts) {
         // "0x1::coin::CoinInfo<..."
@@ -157,10 +157,10 @@ public class StructTagUtils {
     //"0x1::coin::CoinInfo<u8, u64>, u8"
     private static List<TypeTag> readTypeTagList(String ts) {
         List<TypeTag> typeTags = new ArrayList<>();
-        Triple<TypeTag, Boolean, String> triple = readTypeParam(ts, 0);
+        Triple<TypeTag, Boolean, String> triple = readTypeTag(ts, 0);
         while (!triple.getItem2() && triple.getItem1() != null) {
             typeTags.add(triple.getItem1());
-            triple = readTypeParam(triple.getItem3(), 0);
+            triple = readTypeTag(triple.getItem3(), 0);
         }
         return typeTags;
     }
@@ -170,7 +170,7 @@ public class StructTagUtils {
      *
      * @return (TypeTag, End of current depth, Tail of the string) triple.
      */
-    private static Triple<TypeTag, Boolean, String> readTypeParam(String ts, int depth) {
+    private static Triple<TypeTag, Boolean, String> readTypeTag(String ts, int depth) {
         if (ts == null || ts.trim().isEmpty()) {
             return new Triple<>(null, false, null);
         }
@@ -186,25 +186,27 @@ public class StructTagUtils {
         if (parent != null) {
             String tail = ts.substring(idx_lt + 1);
             List<TypeTag> typeTags = new ArrayList<>();
-            Triple<TypeTag, Boolean, String> triple = readTypeParams(tail, depth + 1, typeTags);
+            //System.out.println("parent: " + parent + ", tail: " + tail + ", depth: " + depth + ", about to read type params");
+            Triple<TypeTag, Boolean, String> triple = readTypeParamsToEnd(tail, depth + 1, typeTags);
             parent.setTypeParams(typeTags);
             return new Triple<>(parent, false, triple.getItem3());
         }
-        Pair<String[], Integer> partsAndIdx = splitByCommaOrLtOrGt(ts);
-        String[] parts = partsAndIdx.getItem1();
+        Pair<String[], Integer> partsAndSepIdx = splitByCommaOrLtOrGt(ts);
+        String[] parts = partsAndSepIdx.getItem1();
         String head = parts[0].trim();
         String separator = parts[2];
         TypeTag typeTag = null;
         if (!head.isEmpty()) {
             if (separator != null && separator.equals(LT)) {
-                return readTypeParam(ts, depth);
+                return readTypeTag(ts, depth);
             }
             typeTag = parseTypeTagWithoutTypeParams(head);
         }
         boolean endOfDepth = false;
         if (separator != null && separator.equals(GT)) {
             if (depth - 1 < 0) {
-                throw new IllegalArgumentException(ts);
+                throw new IllegalArgumentException("Unmatched \">\". Param: \"" + ts + "\", parsed head: \"" + head
+                        + "\", separator: \"" + separator + "\", tail: \"" + parts[1] + "\"");
             }
             endOfDepth = true;
         }
@@ -243,7 +245,7 @@ public class StructTagUtils {
             tail = parts[1];
         }
         int separatorIdx = ts.length() > head.length() ? head.length() : -1;
-        String separator = separatorIdx > 0 ? ts.substring(separatorIdx, separatorIdx + 1) : null;
+        String separator = separatorIdx >= 0 ? ts.substring(separatorIdx, separatorIdx + 1) : null;
         if (separator != null && separator.equals(LT)
                 && !head.contains(COLON_COLON) && !startsWithVectorTag(head + LT)) {
             throw new IllegalArgumentException(ts);
@@ -251,16 +253,25 @@ public class StructTagUtils {
         return new Pair<>(new String[]{head, tail, separator}, separatorIdx);
     }
 
-    private static Triple<TypeTag, Boolean, String> readTypeParams(String ts, int nextDepth, List<TypeTag> typeTags) {
-        Triple<TypeTag, Boolean, String> triple = readTypeParam(ts, nextDepth);
+    /**
+     * Read to end of the current depth.
+     */
+    private static Triple<TypeTag, Boolean, String> readTypeParamsToEnd(String ts, int depth, List<TypeTag> typeTags) {
+        Triple<TypeTag, Boolean, String> triple;
+        String tail = ts;
         boolean endOfDepth = false;
-        while (triple.getItem1() != null) {
-            typeTags.add(triple.getItem1());
+        while (true) {
+            triple = readTypeTag(tail, depth);
             if (triple.getItem2()) {
                 endOfDepth = true;
+            }
+            if (triple.getItem1() != null) {
+                typeTags.add(triple.getItem1());
+                tail = triple.getItem3();
+            }
+            if (triple.getItem1() == null || endOfDepth) {
                 break;
             }
-            triple = readTypeParam(triple.getItem3(), nextDepth);
         }
         if (!endOfDepth) {
             throw new IllegalArgumentException(ts);
@@ -272,11 +283,14 @@ public class StructTagUtils {
         if (t.contains(LT) || t.contains(GT) || t.contains(COMMA)) {
             throw new IllegalArgumentException(t);
         }
+        TypeTag typeTag;
         if (t.contains(COLON_COLON)) {
-            return parseStructTag(t);
+            typeTag = parseStructTag(t);
         } else {
-            return new RawTypeTag(t.trim());
+            typeTag = new RawTypeTag(t.trim());
         }
+        //System.out.println("parsed type tag without type params: " + typeTag);
+        return typeTag;
     }
 
     public static class TypeTag {
