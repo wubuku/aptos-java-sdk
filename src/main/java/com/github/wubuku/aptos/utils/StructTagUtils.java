@@ -57,16 +57,20 @@ public class StructTagUtils {
         return sb.toString();
     }
 
+    private static String format(RawTypeTag t) {
+        return t.literalValue;
+    }
+
     private static void formatTypeParams(TypeTagWithTypeParams typeTag, StringBuilder sb) {
         if (typeTag.getTypeParams() != null && !typeTag.getTypeParams().isEmpty()) {
-            sb.append("<");
+            sb.append(LT);
             for (int i = 0; i < typeTag.getTypeParams().size(); i++) {
                 if (i != 0) {
-                    sb.append(", ");
+                    sb.append(COMMA + " ");
                 }
                 TypeTag t = typeTag.getTypeParams().get(i);
                 if (t instanceof RawTypeTag) {
-                    sb.append(((RawTypeTag) t).literalValue);
+                    sb.append(format((RawTypeTag) t));
                 } else if (t instanceof StructTag) {
                     sb.append(format((StructTag) t));
                 } else if (t instanceof VectorTag) {
@@ -75,9 +79,10 @@ public class StructTagUtils {
                     throw new UnsupportedOperationException("Not supported type tag");
                 }
             }
-            sb.append(">");
+            sb.append(GT);
         }
     }
+
 
     public static String trimAddress(String address) {
         if (!address.startsWith("0x")) {
