@@ -11,11 +11,13 @@ import java.util.Collections;
 import java.util.List;
 
 public class StructTagUtils {
-    //public static final int ACCOUNT_ADDRESS_LENGTH = 32;
+    public static final String VECTOR = "vector";
     private static final String COLON_COLON = "::";
     private static final String LT = "<";
     private static final String GT = ">";
     private static final String COMMA = ",";
+
+    //public static final int ACCOUNT_ADDRESS_LENGTH = 32;
 
     private StructTagUtils() {
     }
@@ -44,24 +46,37 @@ public class StructTagUtils {
         sb.append(structTag.getModule());
         sb.append("::");
         sb.append(structTag.getName());
-        if (structTag.typeParams != null && !structTag.typeParams.isEmpty()) {
+        formatTypeParams(structTag, sb);
+        return sb.toString();
+    }
+
+    public static String format(VectorTag structTag) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(VECTOR);
+        formatTypeParams(structTag, sb);
+        return sb.toString();
+    }
+
+    private static void formatTypeParams(TypeTagWithTypeParams typeTag, StringBuilder sb) {
+        if (typeTag.getTypeParams() != null && !typeTag.getTypeParams().isEmpty()) {
             sb.append("<");
-            for (int i = 0; i < structTag.typeParams.size(); i++) {
+            for (int i = 0; i < typeTag.getTypeParams().size(); i++) {
                 if (i != 0) {
                     sb.append(", ");
                 }
-                TypeTag t = structTag.typeParams.get(i);
+                TypeTag t = typeTag.getTypeParams().get(i);
                 if (t instanceof RawTypeTag) {
                     sb.append(((RawTypeTag) t).literalValue);
                 } else if (t instanceof StructTag) {
                     sb.append(format((StructTag) t));
+                } else if (t instanceof VectorTag) {
+                    sb.append(format((VectorTag) t));
                 } else {
                     throw new UnsupportedOperationException("Not supported type tag");
                 }
             }
             sb.append(">");
         }
-        return sb.toString();
     }
 
     public static String trimAddress(String address) {
@@ -111,18 +126,29 @@ public class StructTagUtils {
 
     private static boolean isOneStructTagWithTypeParams(String ts) {
         // "0x1::coin::CoinInfo<T>" or "0x1::coin::CoinInfo<T, ...>"
-        return startWithStructTagWithTypeParams(ts) && ts.endsWith(GT);
+        return startsWithStructTagWithTypeParams(ts) && ts.endsWith(GT);
     }
 
-    private static boolean startWithStructTagWithTypeParams(String ts) {
+    private static boolean startsWithStructTagWithTypeParams(String ts) {
         // "0x1::coin::CoinInfo<..."
-        int typeParams_idx_colon_colon = ts.indexOf(COLON_COLON);
-        int typeParams_idx_lt = ts.indexOf(LT);
-        int typeParams_idx_comma = ts.indexOf(COMMA);
-        boolean startWithStructTagWithTypeParams = typeParams_idx_colon_colon > 0 &&
-                typeParams_idx_lt > 0 && typeParams_idx_lt > typeParams_idx_colon_colon
-                && (typeParams_idx_comma < 0 || typeParams_idx_comma > typeParams_idx_lt);
-        return startWithStructTagWithTypeParams;
+        int idx_colon_colon = ts.indexOf(COLON_COLON);
+        int idx_lt = ts.indexOf(LT);
+        int idx_comma = ts.indexOf(COMMA);
+        return idx_colon_colon > 0 &&
+                idx_lt > 0 && idx_lt > idx_colon_colon
+                && (idx_comma < 0 || idx_comma > idx_lt);
+    }
+
+    private static boolean startsWithVectorTag(String ts) {
+        // "vector<..."
+        if (!ts.trim().startsWith(VECTOR)) {
+            return false;
+        }
+        int idx_vector = ts.indexOf(VECTOR);
+        int idx_lt = ts.indexOf(LT);
+        return idx_vector >= 0 &&
+                idx_lt > 0 && idx_lt > idx_vector
+                && (ts.substring(idx_vector, idx_lt).trim().equals(VECTOR));
     }
 
     //"0x1::coin::CoinInfo"
@@ -148,24 +174,33 @@ public class StructTagUtils {
         if (ts == null || ts.trim().isEmpty()) {
             return new Triple<>(null, false, null);
         }
-        if (startWithStructTagWithTypeParams(ts)) {
-            int idx_lt = ts.indexOf(LT);
-            StructTag parent = parseStructTag(ts.substring(0, idx_lt));
+        TypeTagWithTypeParams parent = null;
+        int idx_lt = 0;
+        if (startsWithStructTagWithTypeParams(ts)) {
+            idx_lt = ts.indexOf(LT);
+            parent = parseStructTag(ts.substring(0, idx_lt));
+        } else if (startsWithVectorTag(ts)) {
+            idx_lt = ts.indexOf(LT);
+            parent = new VectorTag();
+        }
+        if (parent != null) {
             String tail = ts.substring(idx_lt + 1);
             List<TypeTag> typeTags = new ArrayList<>();
             Triple<TypeTag, Boolean, String> triple = readTypeParams(tail, depth + 1, typeTags);
             parent.setTypeParams(typeTags);
             return new Triple<>(parent, false, triple.getItem3());
         }
-        Pair<String[], Integer> partsAndIdx = splitByCommaOrGt(ts);
+        Pair<String[], Integer> partsAndIdx = splitByCommaOrLtOrGt(ts);
         String[] parts = partsAndIdx.getItem1();
-        int idx_comma_or_gt = partsAndIdx.getItem2();
         String head = parts[0].trim();
+        String separator = parts[2];
         TypeTag typeTag = null;
         if (!head.isEmpty()) {
-            typeTag = parseTypeTag(head);
+            if (separator != null && separator.equals(LT)) {
+                return readTypeParam(ts, depth);
+            }
+            typeTag = parseTypeTagWithoutTypeParams(head);
         }
-        String separator = idx_comma_or_gt > 0 ? ts.substring(idx_comma_or_gt, idx_comma_or_gt + 1) : null;
         boolean endOfDepth = false;
         if (separator != null && separator.equals(GT)) {
             if (depth - 1 < 0) {
@@ -174,7 +209,7 @@ public class StructTagUtils {
             endOfDepth = true;
         }
         String tail = null;
-        if (parts.length > 1 && !parts[1].trim().isEmpty()) {
+        if (parts[1] != null && !parts[1].trim().isEmpty()) {
             tail = parts[1].trim();
             if (endOfDepth && tail.startsWith(COMMA)) { // ...>,
                 tail = tail.substring(1).trim();
@@ -184,16 +219,36 @@ public class StructTagUtils {
     }
 
     /**
-     * @return Head and tail of the string, and the index of the separator.
+     * @return (Head, tail of the string, the separator) and the index of the separator.,
      */
-    private static Pair<String[], Integer> splitByCommaOrGt(String ts) {
-        int idx_comma = ts.indexOf(COMMA);
-        int idx_gt = ts.indexOf(GT);
-        int idx_comma_or_gt = (idx_comma > 0 && idx_gt > 0) ? Math.min(idx_comma, idx_gt) : Math.max(idx_comma, idx_gt);
-        String[] parts = idx_comma_or_gt > 0
-                ? new String[]{ts.substring(0, idx_comma_or_gt), ts.substring(idx_comma_or_gt + 1)}
-                : new String[]{ts};
-        return new Pair<>(parts, idx_comma_or_gt);
+    private static Pair<String[], Integer> splitByCommaOrLtOrGt(String ts) {
+        if (ts == null || ts.trim().isEmpty()) {
+            throw new IllegalArgumentException(ts);
+        }
+        String head;
+        String tail = null;
+//        int idx_comma = ts.indexOf(COMMA);
+//        int idx_gt = ts.indexOf(GT);
+//        int idx_comma_or_gt = (idx_comma > 0 && idx_gt > 0) ? Math.min(idx_comma, idx_gt) : Math.max(idx_comma, idx_gt);
+//        if (idx_comma_or_gt > 0) {
+//            head = ts.substring(0, idx_comma_or_gt);
+//            tail = ts.substring(idx_comma_or_gt + 1);
+//        } else {
+//            head = ts;
+//        }
+//        String separator = idx_comma_or_gt > 0 ? ts.substring(idx_comma_or_gt, idx_comma_or_gt + 1) : null;
+        String[] parts = ts.split("[" + LT + GT + COMMA + "]", 2);
+        head = parts[0];
+        if (parts.length > 1) {
+            tail = parts[1];
+        }
+        int separatorIdx = ts.length() > head.length() ? head.length() : -1;
+        String separator = separatorIdx > 0 ? ts.substring(separatorIdx, separatorIdx + 1) : null;
+        if (separator != null && separator.equals(LT)
+                && !head.contains(COLON_COLON) && !startsWithVectorTag(head + LT)) {
+            throw new IllegalArgumentException(ts);
+        }
+        return new Pair<>(new String[]{head, tail, separator}, separatorIdx);
     }
 
     private static Triple<TypeTag, Boolean, String> readTypeParams(String ts, int nextDepth, List<TypeTag> typeTags) {
@@ -213,26 +268,52 @@ public class StructTagUtils {
         return triple;
     }
 
-    private static TypeTag parseTypeTag(String t) {
-        TypeTag typeTag;
-        if (!t.contains(COLON_COLON)) {
-            //throw new UnsupportedOperationException("ONLY support struct as type param");
-            typeTag = new RawTypeTag(t.trim());
-        } else {
-            typeTag = parseStructTag(t.trim());
+    private static TypeTag parseTypeTagWithoutTypeParams(String t) {
+        if (t.contains(LT) || t.contains(GT) || t.contains(COMMA)) {
+            throw new IllegalArgumentException(t);
         }
-        //System.out.println("parsed type tag: " + typeTag);
-        return typeTag;
+        if (t.contains(COLON_COLON)) {
+            return parseStructTag(t);
+        } else {
+            return new RawTypeTag(t.trim());
+        }
     }
 
     public static class TypeTag {
     }
 
-    public static class StructTag extends TypeTag {
+    public static class VectorTag extends TypeTagWithTypeParams {
+        @Override
+        public String toString() {
+            return "VectorTag{" +
+                    "typeParams=" + getTypeParams() +
+                    '}';
+        }
+    }
+
+    public static class TypeTagWithTypeParams extends TypeTag {
+        private List<TypeTag> typeParams;
+
+        public TypeTagWithTypeParams() {
+        }
+
+        public TypeTagWithTypeParams(List<TypeTag> typeParams) {
+            this.typeParams = typeParams;
+        }
+
+        public List<TypeTag> getTypeParams() {
+            return typeParams;
+        }
+
+        public void setTypeParams(List<TypeTag> typeParams) {
+            this.typeParams = typeParams;
+        }
+    }
+
+    public static class StructTag extends TypeTagWithTypeParams {
         private String address;
         private String module;
         private String name;
-        private List<TypeTag> typeParams;
 
         public StructTag() {
         }
@@ -244,10 +325,10 @@ public class StructTagUtils {
         }
 
         public StructTag(String address, String module, String name, List<TypeTag> typeParams) {
+            super(typeParams);
             this.address = address;
             this.module = module;
             this.name = name;
-            this.typeParams = typeParams;
         }
 
         public String getAddress() {
@@ -274,13 +355,6 @@ public class StructTagUtils {
             this.name = name;
         }
 
-        public List<TypeTag> getTypeParams() {
-            return typeParams;
-        }
-
-        public void setTypeParams(List<TypeTag> typeParams) {
-            this.typeParams = typeParams;
-        }
 
         @Override
         public String toString() {
@@ -288,7 +362,7 @@ public class StructTagUtils {
                     "address='" + address + '\'' +
                     ", module='" + module + '\'' +
                     ", name='" + name + '\'' +
-                    ", typeParams=" + typeParams +
+                    ", typeParams=" + getTypeParams() +
                     '}';
         }
     }

@@ -266,6 +266,10 @@ public class MainTests {
     }
 
     private static void testFormatStructTags() {
+        String a1 = StructTagUtils.format(StructTagUtils.parseStructTag(
+                "0x00101::coin::CoinInfo<0x1111::coin::LP<0x1::coin::CoinInfo<u8, u64>, u8, vector<u8>,0x99911::test::D>>"));
+        System.out.println(a1);
+        //if (true) return;
         String a = StructTagUtils.format(StructTagUtils.parseStructTag(
                 "0xc3dbe4f07390f05b19ccfc083fc6aa5bc5d75621d131fc49557c8f4bbc11716::test::S"));
         System.out.println(a);
@@ -275,21 +279,25 @@ public class MainTests {
         a = StructTagUtils.format(StructTagUtils.parseStructTag(
                 "0x0c3dbe4f07390f05b19ccfc083fc6aa5bc5d75621d131fc49557c8f4bbc11716::test::Foo<0x00101::coin::CoinInfo>"));
         System.out.println(a);
-        a = StructTagUtils.format(StructTagUtils.parseStructTag("0x01::coin::CoinInfo<0x1111::coin::LP<u8, u64,u128>>"));
+        a = StructTagUtils.format(StructTagUtils.parseStructTag(
+                "0x01::coin::CoinInfo<0x1111::coin::LP<u8, u64,u128>>"));
         System.out.println(a);
-        a = StructTagUtils.format(StructTagUtils.parseStructTag("0x01::coin::CoinInfo<0x1111::coin::LP<0x00101::coin::CoinInfo, 0x00101::coin::CoinInfo,0x00101::coin::CoinInfo>>"));
+        a = StructTagUtils.format(StructTagUtils.parseStructTag(
+                "0x01::coin::CoinInfo<0x1111::coin::LP<0x00101::coin::CoinInfo, 0x00101::coin::CoinInfo,0x00101::coin::CoinInfo>>"));
         System.out.println(a);
-        a = StructTagUtils.format(StructTagUtils.parseStructTag("0x0101::coin::CoinInfo<0x1111::coin::LP<u8,0x99911::test::D,u128>>"));
+        a = StructTagUtils.format(StructTagUtils.parseStructTag(
+                "0x0101::coin::CoinInfo<0x1111::coin::LP<u8,0x99911::test::D,u128>>"));
         System.out.println(a);
-        a = StructTagUtils.format(StructTagUtils.parseStructTag("0x0101::coin::CoinInfo<0x1111::coin::LP<0x00101::coin::CoinInfo,0x99911::test::D,0x00101::coin::CoinInfo<0x00101::coin::CoinInfo>>>"));
+        a = StructTagUtils.format(StructTagUtils.parseStructTag(
+                "0x0101::coin::CoinInfo<0x1111::coin::LP<0x00101::coin::CoinInfo,0x99911::test::D,0x00101::coin::CoinInfo<0x00101::coin::CoinInfo>>>"));
         System.out.println(a);
-//        a = StructTagUtils.format(StructTagUtils.parseStructTag("0x00101::coin::CoinInfo<0x1111::coin::LP<vector<u8>,0x99911::test::D>>"));
-//        System.out.println(a);
-        a = StructTagUtils.format(StructTagUtils.parseStructTag("0x00101::coin::CoinInfo<0x1111::coin::LP<0x00101::coin::CoinInfo<0x00101::coin::CoinInfo>,0x99911::test::D>>"));
+        a = StructTagUtils.format(StructTagUtils.parseStructTag(
+                "0x00101::coin::CoinInfo<0x1111::coin::LP<vector<u8>,0x99911::test::D>>"));
         System.out.println(a);
-        //a = StructTagUtils.format(StructTagUtils.parseStructTag("0x00101::coin::CoinInfo<0x1111::coin::LP<0x1::coin::CoinInfo<u8, u64>, u8, vector<u8>,0x99911::test::D>>"));
-        //System.out.println(a);
-//        if (true) return;
+        a = StructTagUtils.format(StructTagUtils.parseStructTag(
+                "0x00101::coin::CoinInfo<0x1111::coin::LP<0x00101::coin::CoinInfo<0x00101::coin::CoinInfo>,0x99911::test::D>>"));
+        System.out.println(a);
+
 //        String formattedAddress = NodeApiUtils.formatPathSegmentAccountAddress(
 //                "0xc3dbe4f07390f05b19ccfc083fc6aa5bc5d75621d131fc49557c8f4bbc11716");
 //        System.out.println(formattedAddress);
