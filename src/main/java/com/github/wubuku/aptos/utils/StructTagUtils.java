@@ -1,6 +1,7 @@
 package com.github.wubuku.aptos.utils;
 
 
+import com.github.wubuku.aptos.bean.Pair;
 import com.github.wubuku.aptos.bean.Triple;
 import com.github.wubuku.aptos.types.AccountAddress;
 import com.github.wubuku.aptos.types.TypeInfo;
@@ -102,7 +103,7 @@ public class StructTagUtils {
                 typeParams = Collections.singletonList(parseStructTag(ts));
                 //System.out.println("parsed type param: " + typeParams.get(0));
             } else {
-                typeParams = parseTypeParams(ts);
+                typeParams = readTypeTagList(ts);
             }
         }
         return new StructTag(address, moduleName, structName, typeParams);
@@ -124,7 +125,11 @@ public class StructTagUtils {
         return startWithStructTagWithTypeParams;
     }
 
-    private static List<TypeTag> parseTypeParams(String ts) {
+    //"0x1::coin::CoinInfo"
+    //"u8"
+    //"0x1::coin::CoinInfo, u8"
+    //"0x1::coin::CoinInfo<u8, u64>, u8"
+    private static List<TypeTag> readTypeTagList(String ts) {
         List<TypeTag> typeTags = new ArrayList<>();
         Triple<TypeTag, Boolean, String> triple = readTypeParam(ts, 0);
         while (!triple.getItem2() && triple.getItem1() != null) {
@@ -134,10 +139,11 @@ public class StructTagUtils {
         return typeTags;
     }
 
-    //"0x1::coin::CoinInfo"
-    //"u8"
-    //"0x1::coin::CoinInfo, u8"
-    //"0x1::coin::CoinInfo<u8, u64>, u8"
+    /**
+     * Read a type param from the string.
+     *
+     * @return (TypeTag, End of current depth, Tail of the string) triple.
+     */
     private static Triple<TypeTag, Boolean, String> readTypeParam(String ts, int depth) {
         if (ts == null || ts.trim().isEmpty()) {
             return new Triple<>(null, false, null);
@@ -145,46 +151,66 @@ public class StructTagUtils {
         if (startWithStructTagWithTypeParams(ts)) {
             int idx_lt = ts.indexOf(LT);
             StructTag parent = parseStructTag(ts.substring(0, idx_lt));
+            String tail = ts.substring(idx_lt + 1);
             List<TypeTag> typeTags = new ArrayList<>();
-            Triple<TypeTag, Boolean, String> triple = readTypeParam(ts.substring(idx_lt + 1), depth + 1);
-            while (triple.getItem1() != null) {
-                typeTags.add(triple.getItem1());
-                if (triple.getItem2()) {
-                    break;
-                }
-                triple = readTypeParam(triple.getItem3(), depth + 1);
-            }
+            Triple<TypeTag, Boolean, String> triple = readTypeParams(tail, depth + 1, typeTags);
             parent.setTypeParams(typeTags);
             return new Triple<>(parent, false, triple.getItem3());
         }
+        Pair<String[], Integer> partsAndIdx = splitByCommaOrGt(ts);
+        String[] parts = partsAndIdx.getItem1();
+        int idx_comma_or_gt = partsAndIdx.getItem2();
+        String head = parts[0].trim();
+        TypeTag typeTag = null;
+        if (!head.isEmpty()) {
+            typeTag = parseTypeTag(head);
+        }
+        String separator = idx_comma_or_gt > 0 ? ts.substring(idx_comma_or_gt, idx_comma_or_gt + 1) : null;
+        boolean endOfDepth = false;
+        if (separator != null && separator.equals(GT)) {
+            if (depth - 1 < 0) {
+                throw new IllegalArgumentException(ts);
+            }
+            endOfDepth = true;
+        }
+        String tail = null;
+        if (parts.length > 1 && !parts[1].trim().isEmpty()) {
+            tail = parts[1].trim();
+            if (endOfDepth && tail.startsWith(COMMA)) { // ...>,
+                tail = tail.substring(1).trim();
+            }
+        }
+        return new Triple<>(typeTag, endOfDepth, tail);
+    }
+
+    /**
+     * @return Head and tail of the string, and the index of the separator.
+     */
+    private static Pair<String[], Integer> splitByCommaOrGt(String ts) {
         int idx_comma = ts.indexOf(COMMA);
         int idx_gt = ts.indexOf(GT);
         int idx_comma_or_gt = (idx_comma > 0 && idx_gt > 0) ? Math.min(idx_comma, idx_gt) : Math.max(idx_comma, idx_gt);
         String[] parts = idx_comma_or_gt > 0
                 ? new String[]{ts.substring(0, idx_comma_or_gt), ts.substring(idx_comma_or_gt + 1)}
                 : new String[]{ts};
-        String t = parts[0].trim();
-        TypeTag typeTag = null;
-        if (!t.isEmpty()) {
-            typeTag = parseTypeTag(t);
-        }
-        String separator = idx_comma_or_gt > 0 ? ts.substring(idx_comma_or_gt, idx_comma_or_gt + 1) : null;
-        Boolean endOfThisDepth = false;
-        if (separator != null && separator.equals(GT)) {
-            depth--;
-            if (depth < 0) {
-                throw new IllegalArgumentException(ts);
+        return new Pair<>(parts, idx_comma_or_gt);
+    }
+
+    private static Triple<TypeTag, Boolean, String> readTypeParams(String ts, int nextDepth, List<TypeTag> typeTags) {
+        Triple<TypeTag, Boolean, String> triple = readTypeParam(ts, nextDepth);
+        boolean endOfDepth = false;
+        while (triple.getItem1() != null) {
+            typeTags.add(triple.getItem1());
+            if (triple.getItem2()) {
+                endOfDepth = true;
+                break;
             }
-            endOfThisDepth = true;
+            triple = readTypeParam(triple.getItem3(), nextDepth);
         }
-        String tail = null;
-        if (parts.length > 1 && !parts[1].trim().isEmpty()) {
-            tail = parts[1].trim();
-            if (endOfThisDepth && tail.startsWith(COMMA)) {
-                tail = tail.substring(1).trim();
-            }
+        if (!endOfDepth) {
+            throw new IllegalArgumentException(ts);
         }
-        return new Triple<>(typeTag, endOfThisDepth, tail);
+        return triple;
     }
 
     private static TypeTag parseTypeTag(String t) {
