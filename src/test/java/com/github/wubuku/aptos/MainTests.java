@@ -20,7 +20,7 @@ public class MainTests {
 
     public static void main(String[] args) throws IOException {
         testFormatStructTags();
-        if (true) return;
+        //if (true) return;
 
         //String baseUrl = "https://fullnode.devnet.aptoslabs.com/v1";
         //ChainId chainId = new ChainId((byte) 32); // devnet chain Id.
@@ -58,6 +58,8 @@ public class MainTests {
         LedgerInfo ledgerInfo = NodeApiUtils.getLedgerInfo(baseUrl);
         System.out.println(ledgerInfo);
         //if (true) return;
+        String blockHeight = ledgerInfo.getBlockHeight();
+        String ledgerVersion = ledgerInfo.getLedgerVersion();
 
         java.math.BigInteger balance = NodeApiUtils.getAccountBalance(baseUrl, accountAddress);
         System.out.println(balance);
@@ -213,9 +215,9 @@ public class MainTests {
 //        System.out.println(events_3);
         //if (true) return;
 
-        Block block = NodeApiUtils.getBlockByHeight(baseUrl, "1", true);
+        Block block = NodeApiUtils.getBlockByHeight(baseUrl, blockHeight, true);
         System.out.println(block);
-        Block block2 = NodeApiUtils.getBlockByVersion(baseUrl, "1", true);
+        Block block2 = NodeApiUtils.getBlockByVersion(baseUrl, ledgerVersion, true);
         System.out.println(block2);
         //if (true) return;
 

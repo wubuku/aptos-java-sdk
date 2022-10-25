@@ -20,6 +20,9 @@ public class TransactionPayload {
     @JsonProperty("arguments")//:[
     private List<Object> arguments;
 
+    @JsonProperty("code")
+    private Code code;
+
     public String getType() {
         return type;
     }
@@ -52,6 +55,14 @@ public class TransactionPayload {
         this.arguments = arguments;
     }
 
+    public Code getCode() {
+        return code;
+    }
+
+    public void setCode(Code code) {
+        this.code = code;
+    }
+
     @Override
     public String toString() {
         return "TransactionPayload{" +
@@ -59,6 +70,36 @@ public class TransactionPayload {
                 ", function='" + function + '\'' +
                 ", typeArguments=" + typeArguments +
                 ", arguments=" + arguments +
+                ", code=" + code +
                 '}';
+    }
+
+    public static class Code {
+        private String bytecode;
+        private MoveFunction abi;
+
+        public String getBytecode() {
+            return bytecode;
+        }
+
+        public void setBytecode(String bytecode) {
+            this.bytecode = bytecode;
+        }
+
+        public MoveFunction getAbi() {
+            return abi;
+        }
+
+        public void setAbi(MoveFunction abi) {
+            this.abi = abi;
+        }
+
+        @Override
+        public String toString() {
+            return "Code{" +
+                    "bytecode='" + bytecode + '\'' +
+                    ", abi=" + abi +
+                    '}';
+        }
     }
 }
