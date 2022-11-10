@@ -41,12 +41,11 @@ public class MainTests {
 
             Token token_2 = TokenUtils.getTokenForAccount(aptosDevnetApiBaseUrl,
                     "0x62c18bb90ca44c738f7236ff6a543331f905c3ddd8a598b50f30ea19f848b7ec",
-                    new TokenId(new TokenDataId(
-                            "0xbe6b0076a63c7dc86e033dcbad89b1882c45fdd9a3a8d421aca86e969d4d9397",
-                            tokenCollectionName,
-                            tokenName),
-                            "0"
-                    )
+                    //new TokenId(new TokenDataId(
+                    "0xbe6b0076a63c7dc86e033dcbad89b1882c45fdd9a3a8d421aca86e969d4d9397",
+                    tokenCollectionName,
+                    tokenName,//),
+                    "0"
             );
             System.out.println(token_2);
             if (true) return;
@@ -71,7 +70,7 @@ public class MainTests {
                     testOrderItemId,
                     Map.class, null);
             System.out.println(testOrderItemState);
-            if (true) return;
+            //if (true) return;
         }
 
         testFormatStructTags();

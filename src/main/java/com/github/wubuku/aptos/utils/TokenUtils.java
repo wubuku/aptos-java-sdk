@@ -31,12 +31,25 @@ public class TokenUtils {
                 tokenDataId, TokenData.class, null);
     }
 
-    public static Token getToken(String baseUrl, String creator, String collectionName, String tokenName,
+    public static Token getToken(String baseUrl,
+                                 String creator, String collectionName, String tokenName,
                                  String propertyVersion) throws IOException {
         TokenDataId tokenDataId = new TokenDataId(creator, collectionName, tokenName);
-        return getTokenForAccount(baseUrl, creator, new TokenId(tokenDataId,
+        return getTokenForAccount(baseUrl, creator, newTokenId(propertyVersion, tokenDataId));
+    }
+
+    private static TokenId newTokenId(String propertyVersion, TokenDataId tokenDataId) {
+        return new TokenId(tokenDataId,
                 propertyVersion == null ? "0" : propertyVersion
-        ));
+        );
+    }
+
+    public static Token getTokenForAccount(String baseUrl,
+                                           String accountAddress,
+                                           String creator, String collectionName, String tokenName,
+                                           String propertyVersion) throws IOException {
+        TokenDataId tokenDataId = new TokenDataId(creator, collectionName, tokenName);
+        return getTokenForAccount(baseUrl, accountAddress, newTokenId(propertyVersion, tokenDataId));
     }
 
     public static Token getTokenForAccount(String baseUrl, String accountAddress, TokenId tokenId) throws IOException {

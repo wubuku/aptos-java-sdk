@@ -18,11 +18,11 @@ public class SignatureUtils {
         return rst;
     }
 
-    public static boolean ed25519Verify(byte[] publicKey, byte[] signingMessage, byte[] signature) {
+    public static boolean ed25519Verify(byte[] publicKey, byte[] data, byte[] signature) {
         Ed25519PublicKeyParameters key = new Ed25519PublicKeyParameters(publicKey, 0);
         Ed25519Signer signer = new Ed25519Signer();
         signer.init(false, key);
-        signer.update(signingMessage, 0, signingMessage.length);
+        signer.update(data, 0, data.length);
         return signer.verifySignature(signature);
     }
 
