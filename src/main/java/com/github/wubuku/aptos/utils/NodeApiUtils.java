@@ -321,6 +321,9 @@ public class NodeApiUtils {
         Request request = newGetTableItemRequest(baseUrl, tableHandle, keyType, valueType, key, ledgerVersion);
         OkHttpClient client = getOkHttpClient();
         try (Response response = client.newCall(request).execute()) {
+            if (response.code() == 404) {
+                return null;
+            }
             if (response.code() >= 400) {
                 throwNodeApiException(response);
             }

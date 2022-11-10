@@ -3,10 +3,7 @@ package com.github.wubuku.aptos;
 import com.github.wubuku.aptos.bean.Transaction;
 import com.github.wubuku.aptos.bean.*;
 import com.github.wubuku.aptos.types.*;
-import com.github.wubuku.aptos.utils.HexUtils;
-import com.github.wubuku.aptos.utils.NodeApiUtils;
-import com.github.wubuku.aptos.utils.SignatureUtils;
-import com.github.wubuku.aptos.utils.StructTagUtils;
+import com.github.wubuku.aptos.utils.*;
 import com.novi.bcs.BcsSerializer;
 import com.novi.serde.Bytes;
 import com.novi.serde.SerializationError;
@@ -14,11 +11,69 @@ import com.novi.serde.SerializationError;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MainTests {
 
     public static void main(String[] args) throws IOException {
+
+        if (true) {
+            String aptosDevnetApiBaseUrl = "https://fullnode.devnet.aptoslabs.com/v1";
+            //String tokenCollectionDataTableHandle = "0x670f034a262b791164fd95c774b53f9b8333e34ae01fb00a2ea1083d0d26ca15";
+            String tokenCollectionName = "Alice's";
+            TokenCollectionData tokenCollectionData = TokenUtils.getCollectionData(aptosDevnetApiBaseUrl,
+                    "0xbe6b0076a63c7dc86e033dcbad89b1882c45fdd9a3a8d421aca86e969d4d9397",
+                    tokenCollectionName);
+            System.out.println(tokenCollectionData);
+
+            String tokenName = "Alice's first token";
+            TokenData tokenData = TokenUtils.getTokenData(aptosDevnetApiBaseUrl,
+                    "0xbe6b0076a63c7dc86e033dcbad89b1882c45fdd9a3a8d421aca86e969d4d9397",
+                    tokenCollectionName, tokenName);
+            System.out.println(tokenData);
+
+            Token token_1 = TokenUtils.getToken(aptosDevnetApiBaseUrl,
+                    "0xbe6b0076a63c7dc86e033dcbad89b1882c45fdd9a3a8d421aca86e969d4d9397",
+                    tokenCollectionName, tokenName, null);
+            System.out.println(token_1);
+
+            Token token_2 = TokenUtils.getTokenForAccount(aptosDevnetApiBaseUrl,
+                    "0x62c18bb90ca44c738f7236ff6a543331f905c3ddd8a598b50f30ea19f848b7ec",
+                    new TokenId(new TokenDataId(
+                            "0xbe6b0076a63c7dc86e033dcbad89b1882c45fdd9a3a8d421aca86e969d4d9397",
+                            tokenCollectionName,
+                            tokenName),
+                            "0"
+                    )
+            );
+            System.out.println(token_2);
+            if (true) return;
+
+            Map testOrderState = NodeApiUtils.getTableItem(
+                    aptosDevnetApiBaseUrl,
+                    "0x361bf11399a0f5b89b32d9a0a1079dd674d7a4402b63df0ed6834075b0f6872d",
+                    "vector<u8>",
+                    "0xccf1b0a1053878b4ec1ec094fe50adbe47e9be326208210233132df3ddaf9030::order::OrderState",//"vector<u8>",
+                    HexUtils.byteArrayToHexWithPrefix("test_order_id_1".getBytes()),
+                    Map.class, null);
+            System.out.println(testOrderState);
+
+            java.util.Map<String, Object> testOrderItemId = new HashMap<>();
+            testOrderItemId.put("order_id", HexUtils.byteArrayToHexWithPrefix("test_order_id_1".getBytes()));
+            testOrderItemId.put("product_id", HexUtils.byteArrayToHexWithPrefix("test_product_id_1".getBytes()));
+            Map testOrderItemState = NodeApiUtils.getTableItem(
+                    aptosDevnetApiBaseUrl,
+                    "0x36f48f56e3265945691686c05abe765af78be8f3fbb7b39ef3017a39e25bdff1",
+                    "0xccf1b0a1053878b4ec1ec094fe50adbe47e9be326208210233132df3ddaf9030::order::OrderItemId",
+                    "0xccf1b0a1053878b4ec1ec094fe50adbe47e9be326208210233132df3ddaf9030::order::OrderItemState",//"vector<u8>",
+                    testOrderItemId,
+                    Map.class, null);
+            System.out.println(testOrderItemState);
+            if (true) return;
+        }
+
         testFormatStructTags();
         //if (true) return;
 
