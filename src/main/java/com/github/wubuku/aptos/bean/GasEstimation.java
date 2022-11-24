@@ -3,6 +3,9 @@ package com.github.wubuku.aptos.bean;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class GasEstimation {
+    /**
+     * The current estimate for the gas unit price.
+     */
     @JsonProperty("gas_estimate")
     private Integer gasEstimate;
 

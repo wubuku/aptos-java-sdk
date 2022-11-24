@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.wubuku.aptos.bean.*;
-import com.github.wubuku.aptos.types.RawTransaction;
 import com.github.wubuku.aptos.types.SignedUserTransaction;
 import com.novi.serde.SerializationError;
 import okhttp3.*;
@@ -18,8 +17,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class NodeApiUtils {
-    public static final byte[] ZERO_PADDED_SIGNATURE = new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,};
-    private static final long DEFAULT_MAX_GAS_AMOUNT = 2000L;
+    private static final long DEFAULT_MAX_GAS_AMOUNT = 200000L;
 
     private NodeApiUtils() {
     }
@@ -32,37 +30,6 @@ public class NodeApiUtils {
         return new ObjectMapper();
     }
 
-    /**
-     * Get bytes to sign from BCS bytes of RawTransaction.
-     *
-     * @param rawTransaction BCS bytes of {@link RawTransaction RawTransaction}
-     * @return Bytes to be signed
-     */
-    public static byte[] rawTransactionToSign(byte[] rawTransaction) {
-        return com.google.common.primitives.Bytes
-                .concat(HashUtils.hashWithAptosPrefix("RawTransaction"), rawTransaction);
-    }
-
-    /**
-     * Get bytes to sign from RawTransaction.
-     */
-    public static byte[] rawTransactionToSign(RawTransaction rawTransaction) throws SerializationError {
-        return com.google.common.primitives.Bytes
-                .concat(HashUtils.hashWithAptosPrefix("RawTransaction"), rawTransaction.bcsSerialize());
-    }
-
-    /**
-     * Compute transaction hash locally.
-     *
-     * @param signedTransaction Instance of {@link SignedUserTransaction SignedUserTransaction}
-     * @return Transaction hash
-     * @throws SerializationError if BCS serialization error
-     */
-    public static byte[] getTransactionHash(SignedUserTransaction signedTransaction) throws SerializationError {
-        com.github.wubuku.aptos.types.Transaction t = new com.github.wubuku.aptos.types.Transaction.UserTransaction(signedTransaction);
-        return HashUtils.sha3Hash(com.google.common.primitives.Bytes.concat(
-                HashUtils.hashWithAptosPrefix("Transaction"), t.bcsSerialize()));
-    }
 
     public static SubmitTransactionRequest toSubmitTransactionRequest(EncodeSubmissionRequest encodeSubmissionRequest) {
         ObjectMapper objectMapper = getObjectMapper();

@@ -1,5 +1,6 @@
 package com.github.wubuku.aptos;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.wubuku.aptos.bean.Transaction;
 import com.github.wubuku.aptos.bean.*;
 import com.github.wubuku.aptos.types.*;
@@ -15,12 +16,56 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.github.wubuku.aptos.utils.TransactionUtils.*;
+
 public class MainTests {
 
     public static void main(String[] args) throws IOException {
 
-        if (true) {
+        if (false) {
             String aptosDevnetApiBaseUrl = "https://fullnode.devnet.aptoslabs.com/v1";
+            // //////////////////////////////////
+            List<TypeTag> txnTypeArgs = Collections.singletonList(
+                    new TypeTag.Struct(new StructTag(
+                            AccountAddress.valueOf(HexUtils.hexToAccountAddressBytes("0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e")),
+                            new Identifier("management"),
+                            new Identifier("StandardPosition"),
+                            Collections.emptyList()
+                    ))
+            );
+            List<Bytes> trxArgs = Collections.emptyList();
+            ChainId chainId = new ChainId((byte) 38);
+            String maxGasAmount = "400000";
+            Long expirationTimestampSecs = System.currentTimeMillis() / 1000L + 600;
+            String senderAddress = "0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e";
+            byte[] publicKey = HexUtils.hexToByteArray("0x8a22072b1f2161052ead92fb03fc61354d189974cac300065fa237a16bf96e0c");
+            String sequenceNumber = NodeApiUtils.getAccountSequenceNumber(aptosDevnetApiBaseUrl,
+                    senderAddress);
+            String gasUnitPrice = NodeApiUtils.estimateGasPrice(aptosDevnetApiBaseUrl).getGasEstimate().toString();
+            RawTransaction rawTransaction = newRawTransaction(
+                    chainId,
+                    senderAddress,
+                    sequenceNumber,
+                    maxGasAmount,
+                    gasUnitPrice,
+                    expirationTimestampSecs.toString(),
+                    "0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e",
+                    "treasury",
+                    "get_current_rate_list",
+                    txnTypeArgs, trxArgs);
+            SignedUserTransaction signedUserTransaction = TransactionUtils.newSignedUserTransactionToSimulate(rawTransaction, publicKey);
+            try {
+                List<Transaction> result = NodeApiUtils.simulateBcsTransaction(aptosDevnetApiBaseUrl, signedUserTransaction, false, false);
+                System.out.println(result);
+                String json = new ObjectMapper().writeValueAsString(result);
+                System.out.println(json);
+            } catch (SerializationError e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+            if (true) return;
+            // //////////////////////////////////
+
             //String tokenCollectionDataTableHandle = "0x670f034a262b791164fd95c774b53f9b8333e34ae01fb00a2ea1083d0d26ca15";
             String tokenCollectionName = "Alice's";
             TokenCollectionData tokenCollectionData = TokenUtils.getCollectionData(aptosDevnetApiBaseUrl,
@@ -139,23 +184,20 @@ public class MainTests {
             System.out.println(toSign);
             //if (true) return;
 
-            ModuleId module = new ModuleId(AccountAddress.valueOf(HexUtils.hexToByteArray(accountAddress)), new Identifier("message"));
-            Identifier function = new Identifier("set_message");
-            List<TypeTag> typeArgs = Collections.emptyList();
-            List<Bytes> set_message_args = Collections.singletonList(encode_u8vector_argument(Bytes.valueOf("hello world!".getBytes(StandardCharsets.UTF_8))));
-            EntryFunction entryFunction = new EntryFunction(module, function, typeArgs, set_message_args);
-            com.github.wubuku.aptos.types.TransactionPayload.EntryFunction typesTransactionPayload = new com.github.wubuku.aptos.types.TransactionPayload.EntryFunction(entryFunction);
-            RawTransaction rawTransaction = new RawTransaction(
-                    AccountAddress.valueOf(HexUtils.hexToByteArray(accountAddress)),
-                    Long.parseLong(encodeSubmissionRequest.getSequenceNumber()),
-                    typesTransactionPayload,
-                    Long.parseLong(encodeSubmissionRequest.getMaxGasAmount()),
-                    Long.parseLong(encodeSubmissionRequest.getGasUnitPrice()),
-                    Long.parseLong(encodeSubmissionRequest.getExpirationTimestampSecs()),
-                    chainId
+            List<TypeTag> txnTypeArgs = Collections.emptyList();
+            List<Bytes> trxArgs = Collections.singletonList(
+                    encode_u8vector_argument(Bytes.valueOf("hello world!".getBytes(StandardCharsets.UTF_8)))
             );
+            RawTransaction rawTransaction = newRawTransaction(
+                    chainId,
+                    accountAddress,
+                    encodeSubmissionRequest.getSequenceNumber(),
+                    encodeSubmissionRequest.getMaxGasAmount(),
+                    encodeSubmissionRequest.getGasUnitPrice(),
+                    encodeSubmissionRequest.getExpirationTimestampSecs(),
+                    accountAddress, "message", "set_message", txnTypeArgs, trxArgs);
             try {
-                byte[] rawTxnToSign = NodeApiUtils.rawTransactionToSign(rawTransaction.bcsSerialize());
+                byte[] rawTxnToSign = rawTransactionBcsBytesToSign(rawTransaction.bcsSerialize());
                 //System.out.println(HexUtils.byteArrayToHexWithPrefix(HashUtils.sha3Hash(rawTxnToSign)));
                 String rawTxnToSignHex = HexUtils.byteArrayToHexWithPrefix(rawTxnToSign);
                 System.out.println(rawTxnToSignHex);
@@ -178,11 +220,7 @@ public class MainTests {
             com.github.wubuku.aptos.bean.Transaction submitTransactionResult;
             if (submitBcsTxn) {
                 // ///////////////////////// Simulate transaction //////////////////////////
-                SignedUserTransaction signedTransactionToSimulate = new SignedUserTransaction(rawTransaction,
-                        new TransactionAuthenticator.Ed25519(
-                                new Ed25519PublicKey(Bytes.valueOf(publicKey)),
-                                new Ed25519Signature(Bytes.valueOf(NodeApiUtils.ZERO_PADDED_SIGNATURE))
-                        ));
+                SignedUserTransaction signedTransactionToSimulate = newSignedUserTransactionToSimulate(rawTransaction, publicKey);
                 try {
                     List<com.github.wubuku.aptos.bean.Transaction> simulatedTransactions = NodeApiUtils.simulateBcsTransaction(baseUrl,
                             signedTransactionToSimulate, null, null);
@@ -192,14 +230,10 @@ public class MainTests {
                     throw new RuntimeException(e);
                 }
                 // /////////////////////////////////////////////////////////////////////////
-                SignedUserTransaction signedTransaction = new SignedUserTransaction(rawTransaction,
-                        new TransactionAuthenticator.Ed25519(
-                                new Ed25519PublicKey(Bytes.valueOf(publicKey)),
-                                new Ed25519Signature(Bytes.valueOf(signature))
-                        ));
+                SignedUserTransaction signedTransaction = newSignedUserTransaction(rawTransaction, publicKey, signature);
                 try {
                     System.out.println("Client got transaction_hash: " + HexUtils.byteArrayToHexWithPrefix(
-                            NodeApiUtils.getTransactionHash(signedTransaction)));
+                            getTransactionHash(signedTransaction)));
                     // //////////////// Test submit batch transactions ///////////////////////
                     if (false) {
                         TransactionsBatchSubmissionResult batchSubmissionResult =
@@ -221,7 +255,8 @@ public class MainTests {
                 System.out.println(submitTransactionRequest);
                 if (false) {
                     // ////////////////////// Simulate transaction //////////////////////
-                    submitTransactionRequest.getSignature().setSignature(HexUtils.byteArrayToHexWithPrefix(NodeApiUtils.ZERO_PADDED_SIGNATURE));
+                    submitTransactionRequest.getSignature().setSignature(
+                            HexUtils.byteArrayToHexWithPrefix(TransactionUtils.ZERO_PADDED_SIGNATURE));
                     List<com.github.wubuku.aptos.bean.Transaction> simulatedTransactions = NodeApiUtils.simulateTransaction(baseUrl, submitTransactionRequest, true, true);
                     System.out.println(simulatedTransactions.get(0));
                     submitTransactionResult = simulatedTransactions.get(0);
@@ -320,6 +355,7 @@ public class MainTests {
 
         System.out.println("Seem all Ok.");
     }
+
 
     private static void testFormatStructTags() {
         String a1 = StructTagUtils.format(StructTagUtils.parseStructTag(
