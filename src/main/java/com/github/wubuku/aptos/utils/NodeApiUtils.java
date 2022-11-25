@@ -4,7 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.wubuku.aptos.bean.*;
+import com.github.wubuku.aptos.types.ChainId;
+import com.github.wubuku.aptos.types.RawTransaction;
 import com.github.wubuku.aptos.types.SignedUserTransaction;
+import com.github.wubuku.aptos.types.TypeTag;
+import com.novi.serde.Bytes;
 import com.novi.serde.SerializationError;
 import okhttp3.*;
 import okio.ByteString;
@@ -17,7 +21,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class NodeApiUtils {
-    private static final long DEFAULT_MAX_GAS_AMOUNT = 200000L;
+    public static final long DEFAULT_MAX_GAS_AMOUNT = 400000L;
 
     private NodeApiUtils() {
     }
@@ -30,6 +34,34 @@ public class NodeApiUtils {
         return new ObjectMapper();
     }
 
+    public static RawTransaction newRawTransaction(String baseUrl, String senderAddress,
+                                                   String moduleAddress, String moduleName, String functionName,
+                                                   Long maxGasAmount,
+                                                   List<TypeTag> txnTypeArgs, List<Bytes> trxArgs
+    ) throws IOException {
+        String expirationTimestampSecs = (System.currentTimeMillis() / 1000L + 600) + "";
+        String sequenceNumber = getAccountSequenceNumber(baseUrl,
+                senderAddress);
+        String gasUnitPrice = getGasUnitPrice(baseUrl).toString();
+        LedgerInfo ledgerInfo = getLedgerInfo(baseUrl);
+        ChainId chainId = new ChainId((byte) ledgerInfo.getChainId().intValue());
+        RawTransaction rawTransaction = TransactionUtils.newRawTransaction(
+                chainId,
+                senderAddress,
+                sequenceNumber,
+                maxGasAmount != null ? maxGasAmount.toString() : DEFAULT_MAX_GAS_AMOUNT + "",
+                gasUnitPrice,
+                expirationTimestampSecs,
+                moduleAddress,
+                moduleName,
+                functionName,
+                txnTypeArgs, trxArgs);
+        return rawTransaction;
+    }
+
+    public static Integer getGasUnitPrice(String baseUrl) throws IOException {
+        return estimateGasPrice(baseUrl).getGasEstimate();
+    }
 
     public static SubmitTransactionRequest toSubmitTransactionRequest(EncodeSubmissionRequest encodeSubmissionRequest) {
         ObjectMapper objectMapper = getObjectMapper();
@@ -416,7 +448,7 @@ public class NodeApiUtils {
         r.setExpirationTimestampSecs(expirationTimestampSecs.toString());
         r.setMaxGasAmount("" + (maxGasAmount != null ? maxGasAmount : DEFAULT_MAX_GAS_AMOUNT));//todo
         r.setSequenceNumber(sequenceNumber == null ? getAccountSequenceNumber(baseUrl, sender) : sequenceNumber);
-        r.setGasUnitPrice(gasUnitPrice == null ? estimateGasPrice(baseUrl).getGasEstimate().toString() : gasUnitPrice);
+        r.setGasUnitPrice(gasUnitPrice == null ? getGasUnitPrice(baseUrl).toString() : gasUnitPrice);
         r.setPayload(payload);
         return r;
     }

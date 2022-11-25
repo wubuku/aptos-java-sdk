@@ -1,9 +1,11 @@
 package com.github.wubuku.aptos;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.wubuku.aptos.bean.Transaction;
 import com.github.wubuku.aptos.bean.*;
-import com.github.wubuku.aptos.types.*;
+import com.github.wubuku.aptos.types.ChainId;
+import com.github.wubuku.aptos.types.RawTransaction;
+import com.github.wubuku.aptos.types.SignedUserTransaction;
+import com.github.wubuku.aptos.types.TypeTag;
 import com.github.wubuku.aptos.utils.*;
 import com.novi.bcs.BcsSerializer;
 import com.novi.serde.Bytes;
@@ -16,6 +18,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.github.wubuku.aptos.utils.NodeApiUtils.DEFAULT_MAX_GAS_AMOUNT;
+import static com.github.wubuku.aptos.utils.NodeApiUtils.estimateGasPrice;
+import static com.github.wubuku.aptos.utils.StructTagUtils.toTypeTag;
 import static com.github.wubuku.aptos.utils.TransactionUtils.*;
 
 public class MainTests {
@@ -25,34 +30,20 @@ public class MainTests {
         if (false) {
             String aptosDevnetApiBaseUrl = "https://fullnode.devnet.aptoslabs.com/v1";
             // //////////////////////////////////
-            List<TypeTag> txnTypeArgs = Collections.singletonList(
-                    new TypeTag.Struct(new StructTag(
-                            AccountAddress.valueOf(HexUtils.hexToAccountAddressBytes("0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e")),
-                            new Identifier("management"),
-                            new Identifier("StandardPosition"),
-                            Collections.emptyList()
-                    ))
+            TypeTag txnTypeTag_1 = toTypeTag("0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e"
+                    + "::" + "management"
+                    + "::" + "StandardPosition"
             );
+            List<TypeTag> txnTypeArgs = Collections.singletonList(txnTypeTag_1);
             List<Bytes> trxArgs = Collections.emptyList();
-            ChainId chainId = new ChainId((byte) 38);
-            String maxGasAmount = "400000";
-            Long expirationTimestampSecs = System.currentTimeMillis() / 1000L + 600;
+            String moduleAddress = "0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e";
+            String moduleName = "treasury";
+            String functionName = "get_current_rate_list";
             String senderAddress = "0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e";
-            byte[] publicKey = HexUtils.hexToByteArray("0x8a22072b1f2161052ead92fb03fc61354d189974cac300065fa237a16bf96e0c");
-            String sequenceNumber = NodeApiUtils.getAccountSequenceNumber(aptosDevnetApiBaseUrl,
-                    senderAddress);
-            String gasUnitPrice = NodeApiUtils.estimateGasPrice(aptosDevnetApiBaseUrl).getGasEstimate().toString();
-            RawTransaction rawTransaction = newRawTransaction(
-                    chainId,
-                    senderAddress,
-                    sequenceNumber,
-                    maxGasAmount,
-                    gasUnitPrice,
-                    expirationTimestampSecs.toString(),
-                    "0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e",
-                    "treasury",
-                    "get_current_rate_list",
+            RawTransaction rawTransaction = NodeApiUtils.newRawTransaction(aptosDevnetApiBaseUrl, senderAddress,
+                    moduleAddress, moduleName, functionName, NodeApiUtils.DEFAULT_MAX_GAS_AMOUNT,
                     txnTypeArgs, trxArgs);
+            byte[] publicKey = HexUtils.hexToByteArray("0x8a22072b1f2161052ead92fb03fc61354d189974cac300065fa237a16bf96e0c");
             SignedUserTransaction signedUserTransaction = TransactionUtils.newSignedUserTransactionToSimulate(rawTransaction, publicKey);
             try {
                 List<Transaction> result = NodeApiUtils.simulateBcsTransaction(aptosDevnetApiBaseUrl, signedUserTransaction, false, false);
@@ -166,20 +157,23 @@ public class MainTests {
 
         boolean testSubmitTransaction = false;
         if (testSubmitTransaction) {
-            long maxGasAmount = 400000L;
+            long maxGasAmount = DEFAULT_MAX_GAS_AMOUNT;
             long expirationTimestampSecs = System.currentTimeMillis() / 1000L + 600;
-
             byte[] publicKey = HexUtils.hexToByteArray("0xa76e9dd1a2d9101de47e69e52e0232060b95cd7d80265d61c3fa25e406389b75");
             byte[] privateKey = HexUtils.hexToByteArray("");
 
-            com.github.wubuku.aptos.bean.TransactionPayload transactionPayload = new com.github.wubuku.aptos.bean.TransactionPayload();
-            transactionPayload.setType(com.github.wubuku.aptos.bean.TransactionPayload.TYPE_ENTRY_FUNCTION_PAYLOAD);
-            transactionPayload.setFunction("0x2b490841c230a31fe012f3b2a3f3d146316be073e599eb7d7e5074838073ef14::message::set_message");
+            com.github.wubuku.aptos.bean.TransactionPayload txnPayloadBean = new com.github.wubuku.aptos.bean.TransactionPayload();
+            txnPayloadBean.setType(com.github.wubuku.aptos.bean.TransactionPayload.TYPE_ENTRY_FUNCTION_PAYLOAD);
+            txnPayloadBean.setFunction("0x2b490841c230a31fe012f3b2a3f3d146316be073e599eb7d7e5074838073ef14::message::set_message");
             List<Object> transactionArgs = Collections.singletonList("hello world!");
-            transactionPayload.setArguments(transactionArgs);
+            txnPayloadBean.setArguments(transactionArgs);
             //transactionPayload.setTypeArguments();
-            EncodeSubmissionRequest encodeSubmissionRequest = NodeApiUtils.newEncodeSubmissionRequest(baseUrl, accountAddress,
-                    expirationTimestampSecs, transactionPayload, maxGasAmount, null, null);
+            EncodeSubmissionRequest encodeSubmissionRequest = NodeApiUtils.newEncodeSubmissionRequest(baseUrl,
+                    accountAddress,
+                    expirationTimestampSecs,
+                    txnPayloadBean,
+                    maxGasAmount,
+                    null, null);
             String toSign = NodeApiUtils.encodeSubmission(baseUrl, encodeSubmissionRequest);
             System.out.println(toSign);
             //if (true) return;
@@ -195,7 +189,8 @@ public class MainTests {
                     encodeSubmissionRequest.getMaxGasAmount(),
                     encodeSubmissionRequest.getGasUnitPrice(),
                     encodeSubmissionRequest.getExpirationTimestampSecs(),
-                    accountAddress, "message", "set_message", txnTypeArgs, trxArgs);
+                    accountAddress, "message", "set_message",
+                    txnTypeArgs, trxArgs);
             try {
                 byte[] rawTxnToSign = rawTransactionBcsBytesToSign(rawTransaction.bcsSerialize());
                 //System.out.println(HexUtils.byteArrayToHexWithPrefix(HashUtils.sha3Hash(rawTxnToSign)));
@@ -310,7 +305,7 @@ public class MainTests {
         System.out.println(block2);
         //if (true) return;
 
-        GasEstimation gasEstimation = NodeApiUtils.estimateGasPrice(baseUrl);
+        GasEstimation gasEstimation = estimateGasPrice(baseUrl);
         System.out.println(gasEstimation);
         //if (true) return;
 

@@ -4,6 +4,7 @@ package com.github.wubuku.aptos.utils;
 import com.github.wubuku.aptos.bean.Pair;
 import com.github.wubuku.aptos.bean.Triple;
 import com.github.wubuku.aptos.types.AccountAddress;
+import com.github.wubuku.aptos.types.Identifier;
 import com.github.wubuku.aptos.types.TypeInfo;
 
 import java.util.ArrayList;
@@ -20,6 +21,24 @@ public class StructTagUtils {
     //public static final int ACCOUNT_ADDRESS_LENGTH = 32;
 
     private StructTagUtils() {
+    }
+
+    public static com.github.wubuku.aptos.types.TypeTag toTypeTag(String s) {
+        StructTag structTag = parseStructTag(s);
+        if (structTag.getTypeParams() != null && structTag.getTypeParams().size() > 0) {
+            throw new IllegalArgumentException("type params not supported");
+        }
+        return toTypeTag(structTag.address, structTag.module, structTag.name);
+    }
+
+    public static com.github.wubuku.aptos.types.TypeTag toTypeTag(String structAddress, String structModule, String structName) {
+        com.github.wubuku.aptos.types.TypeTag tt = new com.github.wubuku.aptos.types.TypeTag.Struct(new com.github.wubuku.aptos.types.StructTag(
+                AccountAddress.valueOf(HexUtils.hexToAccountAddressBytes(structAddress)),
+                new Identifier(structModule),
+                new Identifier(structName),
+                Collections.emptyList()
+        ));
+        return tt;
     }
 
     public static TypeInfo toTypeInfo(StructTagUtils.StructTag t) {
