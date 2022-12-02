@@ -1,17 +1,16 @@
 package com.github.wubuku.aptos;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.wubuku.aptos.bean.Transaction;
 import com.github.wubuku.aptos.bean.*;
-import com.github.wubuku.aptos.types.ChainId;
-import com.github.wubuku.aptos.types.RawTransaction;
-import com.github.wubuku.aptos.types.SignedUserTransaction;
-import com.github.wubuku.aptos.types.TypeTag;
+import com.github.wubuku.aptos.types.*;
 import com.github.wubuku.aptos.utils.*;
 import com.novi.bcs.BcsSerializer;
 import com.novi.serde.Bytes;
 import com.novi.serde.SerializationError;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,22 +29,108 @@ public class MainTests {
         if (false) {
             String aptosDevnetApiBaseUrl = "https://fullnode.devnet.aptoslabs.com/v1";
             // //////////////////////////////////
-            TypeTag txnTypeTag_1 = toTypeTag("0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e"
+            String senderAddress = "0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e";
+            byte[] publicKey = HexUtils.hexToByteArray("0x8a22072b1f2161052ead92fb03fc61354d189974cac300065fa237a16bf96e0c");
+            TypeTag txnTypeTag_PT = toTypeTag("0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e"
                     + "::" + "management"
                     + "::" + "StandardPosition"
             );
-            List<TypeTag> txnTypeArgs = Collections.singletonList(txnTypeTag_1);
-            List<Bytes> trxArgs = Collections.emptyList();
             String moduleAddress = "0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e";
-            String moduleName = "treasury";
+            String moduleName = "query";//"treasury";
             String functionName = "get_current_rate_list";
-            String senderAddress = "0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e";
+            List<TypeTag> txnTypeArgs = Collections.singletonList(txnTypeTag_PT);
+            List<Bytes> trxArgs = Collections.emptyList();
             RawTransaction rawTransaction = NodeApiUtils.newRawTransaction(aptosDevnetApiBaseUrl, senderAddress,
                     moduleAddress, moduleName, functionName, NodeApiUtils.DEFAULT_MAX_GAS_AMOUNT,
                     txnTypeArgs, trxArgs);
-            byte[] publicKey = HexUtils.hexToByteArray("0x8a22072b1f2161052ead92fb03fc61354d189974cac300065fa237a16bf96e0c");
             SignedUserTransaction signedUserTransaction = TransactionUtils.newSignedUserTransactionToSimulate(rawTransaction, publicKey);
             try {
+                System.out.println(moduleAddress + "::" + moduleName + "::" + functionName);
+                List<Transaction> result = NodeApiUtils.simulateBcsTransaction(aptosDevnetApiBaseUrl, signedUserTransaction, false, false);
+                System.out.println(result);
+                String json = new ObjectMapper().writeValueAsString(result);
+                System.out.println(json);
+            } catch (SerializationError e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+            // ////////////////
+            TypeTag txnTypeTag_METH = toTypeTag("0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e"
+                    + "::" + "METH" + "::" + "METH"
+            );
+            moduleAddress = "0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e";
+            moduleName = "query";
+            functionName = "get_current_to_usd_value";
+            txnTypeArgs = Collections.singletonList(txnTypeTag_METH);
+            trxArgs = Collections.singletonList(encode_u128_argument(BigInteger.valueOf(1000000000)));
+            rawTransaction = NodeApiUtils.newRawTransaction(aptosDevnetApiBaseUrl, senderAddress,
+                    moduleAddress, moduleName, functionName, NodeApiUtils.DEFAULT_MAX_GAS_AMOUNT,
+                    txnTypeArgs, trxArgs);
+            signedUserTransaction = TransactionUtils.newSignedUserTransactionToSimulate(rawTransaction, publicKey);
+            try {
+                System.out.println(moduleAddress + "::" + moduleName + "::" + functionName);
+                List<Transaction> result = NodeApiUtils.simulateBcsTransaction(aptosDevnetApiBaseUrl, signedUserTransaction, false, false);
+                System.out.println(result);
+                String json = new ObjectMapper().writeValueAsString(result);
+                System.out.println(json);
+            } catch (SerializationError e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+
+            moduleAddress = "0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e";
+            moduleName = "query";
+            functionName = "get_current_to_usd_price_list";
+            txnTypeArgs = Collections.emptyList();
+            trxArgs = Collections.emptyList();
+            rawTransaction = NodeApiUtils.newRawTransaction(aptosDevnetApiBaseUrl, senderAddress,
+                    moduleAddress, moduleName, functionName, NodeApiUtils.DEFAULT_MAX_GAS_AMOUNT,
+                    txnTypeArgs, trxArgs);
+            signedUserTransaction = TransactionUtils.newSignedUserTransactionToSimulate(rawTransaction, publicKey);
+            try {
+                System.out.println(moduleAddress + "::" + moduleName + "::" + functionName);
+                List<Transaction> result = NodeApiUtils.simulateBcsTransaction(aptosDevnetApiBaseUrl, signedUserTransaction, false, false);
+                System.out.println(result);
+                String json = new ObjectMapper().writeValueAsString(result);
+                System.out.println(json);
+            } catch (SerializationError e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+
+            moduleAddress = "0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e";
+            moduleName = "query";
+            functionName = "get_current_assets_overview";
+            txnTypeArgs = Collections.singletonList(txnTypeTag_PT);
+            trxArgs = Collections.emptyList();
+            rawTransaction = NodeApiUtils.newRawTransaction(aptosDevnetApiBaseUrl, senderAddress,
+                    moduleAddress, moduleName, functionName, NodeApiUtils.DEFAULT_MAX_GAS_AMOUNT,
+                    txnTypeArgs, trxArgs);
+            signedUserTransaction = TransactionUtils.newSignedUserTransactionToSimulate(rawTransaction, publicKey);
+            try {
+                System.out.println(moduleAddress + "::" + moduleName + "::" + functionName);
+                List<Transaction> result = NodeApiUtils.simulateBcsTransaction(aptosDevnetApiBaseUrl, signedUserTransaction, false, false);
+                System.out.println(result);
+                String json = new ObjectMapper().writeValueAsString(result);
+                System.out.println(json);
+            } catch (SerializationError e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+
+            moduleAddress = "0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e";
+            moduleName = "query";
+            functionName = "get_current_borrowable_amounts_list";
+            txnTypeArgs = Collections.singletonList(txnTypeTag_PT);
+            trxArgs = Collections.singletonList(encode_account_address_argument(AccountAddress.valueOf(
+                    HexUtils.hexToAccountAddressBytes("0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e")
+            )));
+            rawTransaction = NodeApiUtils.newRawTransaction(aptosDevnetApiBaseUrl, senderAddress,
+                    moduleAddress, moduleName, functionName, NodeApiUtils.DEFAULT_MAX_GAS_AMOUNT,
+                    txnTypeArgs, trxArgs);
+            signedUserTransaction = TransactionUtils.newSignedUserTransactionToSimulate(rawTransaction, publicKey);
+            try {
+                System.out.println(moduleAddress + "::" + moduleName + "::" + functionName);
                 List<Transaction> result = NodeApiUtils.simulateBcsTransaction(aptosDevnetApiBaseUrl, signedUserTransaction, false, false);
                 System.out.println(result);
                 String json = new ObjectMapper().writeValueAsString(result);
@@ -406,6 +491,25 @@ public class MainTests {
         }
     }
 
+    private static Bytes encode_u128_argument(BigInteger u) {
+        try {
+            BcsSerializer s = new BcsSerializer();
+            s.serialize_u128(u);
+            return Bytes.valueOf(s.get_bytes());
+        } catch (SerializationError e) {
+            throw new IllegalArgumentException("Unable to serialize argument of type u128");
+        }
+    }
+
+    private static Bytes encode_account_address_argument(AccountAddress address) {
+        try {
+            BcsSerializer s = new BcsSerializer();
+            address.serialize(s);
+            return Bytes.valueOf(s.get_bytes());
+        } catch (SerializationError e) {
+            throw new IllegalArgumentException("Unable to serialize argument of type u8vector");
+        }
+    }
 
     public static class TestTableHolder {
         private Table table;
