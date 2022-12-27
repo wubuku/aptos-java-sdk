@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.wubuku.aptos.utils.NodeApiUtils.DEFAULT_MAX_GAS_AMOUNT;
+import static com.github.wubuku.aptos.utils.NodeApiClient.DEFAULT_MAX_GAS_AMOUNT;
 import static com.github.wubuku.aptos.utils.NodeApiUtils.estimateGasPrice;
 import static com.github.wubuku.aptos.utils.StructTagUtils.toTypeTag;
 import static com.github.wubuku.aptos.utils.TransactionUtils.*;
@@ -41,7 +41,7 @@ public class MainTests {
             List<TypeTag> txnTypeArgs = Collections.singletonList(txnTypeTag_PT);
             List<Bytes> trxArgs = Collections.emptyList();
             RawTransaction rawTransaction = NodeApiUtils.newRawTransaction(aptosDevnetApiBaseUrl, senderAddress,
-                    moduleAddress, moduleName, functionName, NodeApiUtils.DEFAULT_MAX_GAS_AMOUNT,
+                    moduleAddress, moduleName, functionName, DEFAULT_MAX_GAS_AMOUNT,
                     txnTypeArgs, trxArgs);
             SignedUserTransaction signedUserTransaction = TransactionUtils.newSignedUserTransactionToSimulate(rawTransaction, publicKey);
             try {
@@ -64,7 +64,7 @@ public class MainTests {
             txnTypeArgs = Collections.singletonList(txnTypeTag_METH);
             trxArgs = Collections.singletonList(encode_u128_argument(BigInteger.valueOf(1000000000)));
             rawTransaction = NodeApiUtils.newRawTransaction(aptosDevnetApiBaseUrl, senderAddress,
-                    moduleAddress, moduleName, functionName, NodeApiUtils.DEFAULT_MAX_GAS_AMOUNT,
+                    moduleAddress, moduleName, functionName, DEFAULT_MAX_GAS_AMOUNT,
                     txnTypeArgs, trxArgs);
             signedUserTransaction = TransactionUtils.newSignedUserTransactionToSimulate(rawTransaction, publicKey);
             try {
@@ -84,7 +84,7 @@ public class MainTests {
             txnTypeArgs = Collections.emptyList();
             trxArgs = Collections.emptyList();
             rawTransaction = NodeApiUtils.newRawTransaction(aptosDevnetApiBaseUrl, senderAddress,
-                    moduleAddress, moduleName, functionName, NodeApiUtils.DEFAULT_MAX_GAS_AMOUNT,
+                    moduleAddress, moduleName, functionName, DEFAULT_MAX_GAS_AMOUNT,
                     txnTypeArgs, trxArgs);
             signedUserTransaction = TransactionUtils.newSignedUserTransactionToSimulate(rawTransaction, publicKey);
             try {
@@ -104,7 +104,7 @@ public class MainTests {
             txnTypeArgs = Collections.singletonList(txnTypeTag_PT);
             trxArgs = Collections.emptyList();
             rawTransaction = NodeApiUtils.newRawTransaction(aptosDevnetApiBaseUrl, senderAddress,
-                    moduleAddress, moduleName, functionName, NodeApiUtils.DEFAULT_MAX_GAS_AMOUNT,
+                    moduleAddress, moduleName, functionName, DEFAULT_MAX_GAS_AMOUNT,
                     txnTypeArgs, trxArgs);
             signedUserTransaction = TransactionUtils.newSignedUserTransactionToSimulate(rawTransaction, publicKey);
             try {
@@ -126,7 +126,7 @@ public class MainTests {
                     HexUtils.hexToAccountAddressBytes("0xbebaf664c81aa143a87105a5144cc8c0f9ee6b222adb7b2d2a5265ec0ae71f4e")
             )));
             rawTransaction = NodeApiUtils.newRawTransaction(aptosDevnetApiBaseUrl, senderAddress,
-                    moduleAddress, moduleName, functionName, NodeApiUtils.DEFAULT_MAX_GAS_AMOUNT,
+                    moduleAddress, moduleName, functionName, DEFAULT_MAX_GAS_AMOUNT,
                     txnTypeArgs, trxArgs);
             signedUserTransaction = TransactionUtils.newSignedUserTransactionToSimulate(rawTransaction, publicKey);
             try {
