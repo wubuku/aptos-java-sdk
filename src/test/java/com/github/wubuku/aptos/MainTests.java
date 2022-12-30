@@ -110,7 +110,7 @@ public class MainTests {
             long maxGasAmount = DEFAULT_MAX_GAS_AMOUNT;
             long expirationTimestampSecs = System.currentTimeMillis() / 1000L + 600;
             byte[] publicKey = HexUtils.hexToByteArray("0xa76e9dd1a2d9101de47e69e52e0232060b95cd7d80265d61c3fa25e406389b75");
-            byte[] privateKey = HexUtils.hexToByteArray("");//TODO fill in private key here.
+            byte[] privateKey = HexUtils.hexToByteArray(""); //TODO fill in private key here.
 
             com.github.wubuku.aptos.bean.TransactionPayload txnPayloadBean = new com.github.wubuku.aptos.bean.TransactionPayload();
             txnPayloadBean.setType(com.github.wubuku.aptos.bean.TransactionPayload.TYPE_ENTRY_FUNCTION_PAYLOAD);
@@ -142,7 +142,7 @@ public class MainTests {
                     accountAddress, "message", "set_message",
                     txnTypeArgs, trxArgs);
             try {
-                byte[] rawTxnToSign = rawTransactionBcsBytesToSign(rawTransaction.bcsSerialize());
+                byte[] rawTxnToSign = rawTransactionBcsBytesToSign(rawTransaction);
                 //System.out.println(HexUtils.byteArrayToHexWithPrefix(HashUtils.sha3Hash(rawTxnToSign)));
                 String rawTxnToSignHex = HexUtils.byteArrayToHexWithPrefix(rawTxnToSign);
                 System.out.println(rawTxnToSignHex);

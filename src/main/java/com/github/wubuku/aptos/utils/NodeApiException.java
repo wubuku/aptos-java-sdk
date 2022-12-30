@@ -7,8 +7,6 @@ public class NodeApiException extends RuntimeException {
     private AptosError aptosError;
 
     private String requestUrl;
-//    public NodeApiException() {
-//    }
 
     public NodeApiException(Integer httpStatusCode, Throwable cause) {
         super(getString(httpStatusCode, null, null), cause);

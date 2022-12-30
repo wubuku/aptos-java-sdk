@@ -39,10 +39,14 @@ public class TransactionUtils {
             String functionName,
             List<TypeTag> typeArgs,
             List<Bytes> args) {
-        ModuleId module = new ModuleId(AccountAddress.valueOf(HexUtils.hexToByteArray(moduleAddress)), new Identifier(moduleName));
-        Identifier function = new Identifier(functionName);
-        return newRawTransaction(chainId, sender, sequenceNumber, maxGasAmount, gasUnitPrice, expirationTimestampSecs,
-                module, function, typeArgs, args);
+        ModuleId moduleId = new ModuleId(AccountAddress.valueOf(HexUtils.hexToByteArray(moduleAddress)),
+                new Identifier(moduleName));
+        Identifier functionId = new Identifier(functionName);
+        return newRawTransaction(chainId, sender, sequenceNumber, maxGasAmount, gasUnitPrice,
+                expirationTimestampSecs,
+                moduleId,
+                functionId,
+                typeArgs, args);
     }
 
     public static RawTransaction newRawTransaction(
@@ -52,11 +56,11 @@ public class TransactionUtils {
             String maxGasAmount,
             String gasUnitPrice,
             String expirationTimestampSecs,
-            ModuleId module,
-            Identifier function,
+            ModuleId moduleId,
+            Identifier functionId,
             List<TypeTag> typeArgs,
             List<Bytes> args) {
-        EntryFunction entryFunction = new EntryFunction(module, function, typeArgs, args);
+        EntryFunction entryFunction = new EntryFunction(moduleId, functionId, typeArgs, args);
         com.github.wubuku.aptos.types.TransactionPayload.EntryFunction typesTransactionPayload = new com.github.wubuku.aptos.types.TransactionPayload.EntryFunction(entryFunction);
         RawTransaction rawTransaction = new RawTransaction(
                 AccountAddress.valueOf(HexUtils.hexToByteArray(sender)),
@@ -71,22 +75,21 @@ public class TransactionUtils {
     }
 
     /**
+     * Get bytes to sign from RawTransaction.
+     */
+    public static byte[] rawTransactionBcsBytesToSign(RawTransaction rawTransaction) throws SerializationError {
+        return rawTransactionBcsBytesToSign(rawTransaction.bcsSerialize());
+    }
+
+    /**
      * Get bytes to sign from BCS bytes of RawTransaction.
      *
      * @param rawTransaction BCS bytes of {@link RawTransaction RawTransaction}
      * @return Bytes to be signed
      */
-    public static byte[] rawTransactionBcsBytesToSign(byte[] rawTransaction) {
+    private static byte[] rawTransactionBcsBytesToSign(byte[] rawTransaction) {
         return com.google.common.primitives.Bytes
                 .concat(HashUtils.hashWithAptosPrefix("RawTransaction"), rawTransaction);
-    }
-
-    /**
-     * Get bytes to sign from RawTransaction.
-     */
-    public static byte[] rawTransactionBcsBytesToSign(RawTransaction rawTransaction) throws SerializationError {
-        return com.google.common.primitives.Bytes
-                .concat(HashUtils.hashWithAptosPrefix("RawTransaction"), rawTransaction.bcsSerialize());
     }
 
     /**
