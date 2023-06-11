@@ -95,6 +95,26 @@ public abstract class BinarySerializer implements Serializer {
         }
     }
 
+
+    public void serialize_u256(@Unsigned /*@Int256*/ BigInteger value) throws SerializationError {
+        if (value.compareTo(BigInteger.ZERO) < 0 || !value.shiftRight(256).equals(BigInteger.ZERO)) {
+            throw new java.lang.IllegalArgumentException("Invalid value for an unsigned int256");
+        }
+        byte[] content = value.toByteArray();
+        // BigInteger.toByteArray() may add a most-significant zero
+        // byte for signing purpose: ignore it.
+        assert content.length <= 32 || content[0] == 0;
+        int len = Math.min(content.length, 32);
+        // Write content in little-endian order.
+        for (int i = 0; i < len; i++) {
+            output.write(content[content.length - 1 - i]);
+        }
+        // Complete with zeros if needed.
+        for (int i = len; i < 32; i++) {
+            output.write(0);
+        }
+    }
+
     public void serialize_i8(Byte value) throws SerializationError {
         serialize_u8(value);
     }

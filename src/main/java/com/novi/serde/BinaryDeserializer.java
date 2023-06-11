@@ -101,6 +101,15 @@ public abstract class BinaryDeserializer implements Deserializer {
         }
     }
 
+    public @Unsigned /*@Int256*/ BigInteger deserialize_u256() throws DeserializationError {
+        BigInteger signed = deserialize_i256();
+        if (signed.compareTo(BigInteger.ZERO) >= 0) {
+            return signed;
+        } else {
+            return signed.add(BigInteger.ONE.shiftLeft(256));
+        }
+    }
+
     public Byte deserialize_i8() throws DeserializationError {
         return Byte.valueOf(getByte());
     }
@@ -123,6 +132,16 @@ public abstract class BinaryDeserializer implements Deserializer {
         byte[] reversed = new byte[16];
         for (int i = 0; i < 16; i++) {
             reversed[i] = content[15 - i];
+        }
+        return new BigInteger(reversed);
+    }
+
+    public /*@Int256*/ BigInteger deserialize_i256() throws DeserializationError {
+        byte[] content = new byte[32];
+        read(content);
+        byte[] reversed = new byte[32];
+        for (int i = 0; i < 32; i++) {
+            reversed[i] = content[31 - i];
         }
         return new BigInteger(reversed);
     }
