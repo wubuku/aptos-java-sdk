@@ -160,7 +160,39 @@ public class NodeApiClient {
         return new Request.Builder().url(url).post(body).build();
     }
 
+
+    private static Request newGetRawTableItemRequest(String baseUrl, String tableHandle,
+                                                     byte[] key, String ledgerVersion) throws JsonProcessingException {
+        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
+                .addPathSegment("tables")
+                .addPathSegment(tableHandle)
+                .addPathSegment("raw_item");
+        if (ledgerVersion != null) {
+            builder.addQueryParameter("ledger_version", ledgerVersion);
+        }
+        HttpUrl url = builder.build();
+        ObjectMapper objectMapper = getObjectMapper();
+        Map<String, Object> bodyMap = new LinkedHashMap<>();
+        bodyMap.put("key", HexUtils.byteArrayToHexWithPrefix(key));
+        RequestBody body = RequestBody.create(MediaType.parse("application/json"), objectMapper.writeValueAsString(bodyMap));
+        return new Request.Builder().url(url).post(body)
+                .header("Accept", "application/x-bcs")
+                .build();
+    }
+
     private static Request newGetAccountResourceRequest(String baseUrl, String accountAddress, String resourceType, String ledgerVersion) {
+        HttpUrl url = newGetAccountResourceHttpUrl(baseUrl, accountAddress, resourceType, ledgerVersion);
+        return new Request.Builder().url(url).build();
+    }
+
+    private static Request newGetRawAccountResourceRequest(String baseUrl, String accountAddress, String resourceType, String ledgerVersion) {
+        HttpUrl url = newGetAccountResourceHttpUrl(baseUrl, accountAddress, resourceType, ledgerVersion);
+        return new Request.Builder().url(url)
+                .header("Accept", "application/x-bcs")
+                .build();
+    }
+
+    private static HttpUrl newGetAccountResourceHttpUrl(String baseUrl, String accountAddress, String resourceType, String ledgerVersion) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
                 .addPathSegment(accountAddress)
@@ -169,8 +201,7 @@ public class NodeApiClient {
         if (ledgerVersion != null) {
             builder.addQueryParameter("ledger_version", ledgerVersion);
         }
-        HttpUrl url = builder.build();
-        return new Request.Builder().url(url).build();
+        return builder.build();
     }
 
     private static Request newGetAccountModuleRequest(String baseUrl, String accountAddress, String moduleName, String ledgerVersion) {
@@ -384,7 +415,7 @@ public class NodeApiClient {
                                             Long maxGasAmount,
                                             List<TypeTag> txnTypeArgs, List<Bytes> trxArgs
     ) throws IOException {
-        String expirationTimestampSecs = (System.currentTimeMillis() / 1000L + 600) + "";
+        String expirationTimestampSecs = String.valueOf(System.currentTimeMillis() / 1000L + 600);
         String sequenceNumber = getAccountSequenceNumber(senderAddress);
         String gasUnitPrice = getGasUnitPrice().toString();
         LedgerInfo ledgerInfo = getLedgerInfo();
@@ -618,6 +649,18 @@ public class NodeApiClient {
         }
     }
 
+    public byte[] getRawAccountResource(String accountAddress, String resourceType,
+                                        String ledgerVersion) throws IOException {
+        Request request = newGetRawAccountResourceRequest(baseUrl, accountAddress, resourceType, ledgerVersion);
+        OkHttpClient client = getOkHttpClient();
+        try (Response response = client.newCall(request).execute()) {
+            if (response.code() >= 400) {
+                throwNodeApiException(response);
+            }
+            return response.body() != null ? response.body().bytes() : new byte[0];
+        }
+    }
+
     public MoveModuleBytecode getAccountModule(String accountAddress, String moduleName, String ledgerVersion) throws IOException {
         Request request = newGetAccountModuleRequest(baseUrl, accountAddress, moduleName, ledgerVersion);
         OkHttpClient client = getOkHttpClient();
@@ -664,6 +707,21 @@ public class NodeApiClient {
                 throwNodeApiException(response);
             }
             return readResponseBody(response, valueJavaType);
+        }
+    }
+
+    public byte[] getRawTableItem(String tableHandle, byte[] key,
+                                  String ledgerVersion) throws IOException {
+        Request request = newGetRawTableItemRequest(baseUrl, tableHandle, key, ledgerVersion);
+        OkHttpClient client = getOkHttpClient();
+        try (Response response = client.newCall(request).execute()) {
+            if (response.code() == 404) {
+                return null;
+            }
+            if (response.code() >= 400) {
+                throwNodeApiException(response);
+            }
+            return response.body() != null ? response.body().bytes() : new byte[0];
         }
     }
 
@@ -769,7 +827,7 @@ public class NodeApiClient {
         EncodeSubmissionRequest r = new EncodeSubmissionRequest();
         r.setSender(sender);
         r.setExpirationTimestampSecs(expirationTimestampSecs.toString());
-        r.setMaxGasAmount("" + (maxGasAmount != null ? maxGasAmount : DEFAULT_MAX_GAS_AMOUNT));//todo
+        r.setMaxGasAmount(String.valueOf(maxGasAmount != null ? maxGasAmount : DEFAULT_MAX_GAS_AMOUNT));//todo
         r.setSequenceNumber(sequenceNumber == null ? getAccountSequenceNumber(sender) : sequenceNumber);
         r.setGasUnitPrice(gasUnitPrice == null ? getGasUnitPrice().toString() : gasUnitPrice);
         r.setPayload(payload);
