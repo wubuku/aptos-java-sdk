@@ -53,7 +53,17 @@ public class OrderTests {
         System.out.println(HexUtils.byteArrayToHexWithPrefix(bcsData));
 
         String orderItemTableHandle = v.items.getInner().getHandle();
+        System.out.println("# order item table handle:");
+        System.out.println(orderItemTableHandle);
 
+        java.util.Map orderItem = NodeApiUtils.getTableItem(baseUrl,
+                orderItemTableHandle,
+                "0x1::string::String",
+                "0x2239450816c09cef0202c090ec15f648a33e3fff0209167cad1ef6830b1d5d1f::order_item::OrderItem",
+                "00000000000000000001",
+                java.util.Map.class,
+                null);
+        System.out.println(toJson(orderItem));
     }
 
     private static byte[] bcsSerializeString(String key) throws SerializationError {
