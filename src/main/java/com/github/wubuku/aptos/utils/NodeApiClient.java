@@ -24,87 +24,16 @@ public class NodeApiClient {
 
     private final String baseUrl;
 
+    private ObjectMapper objectMapper;
+
     public NodeApiClient(String baseUrl) {
+        this(baseUrl, new ObjectMapper());
+    }
+
+    public NodeApiClient(String baseUrl, ObjectMapper objectMapper) {
+        if (objectMapper == null) throw new NullPointerException("objectMapper is null");
+        this.objectMapper = objectMapper;
         this.baseUrl = baseUrl;
-    }
-
-    private static ObjectMapper getObjectMapper() {
-        return new ObjectMapper();
-    }
-
-    private static Request newEncodeSubmissionHttpRequest(String baseUrl, EncodeSubmissionRequest request) throws JsonProcessingException {
-        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
-                .addPathSegment("transactions")
-                .addPathSegment("encode_submission");
-        HttpUrl url = builder.build();
-        ObjectMapper objectMapper = getObjectMapper();
-        String json = objectMapper.writeValueAsString(request);
-        RequestBody body = RequestBody.create(MediaType.parse("application/json"), ByteString.encodeUtf8(json));
-        return new Request.Builder().url(url).post(body).build();
-    }
-
-    private static Request newSubmitTransactionHttpRequest(String baseUrl, SubmitTransactionRequest submitTransactionRequest) throws JsonProcessingException {
-        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
-                .addPathSegment("transactions");
-        HttpUrl url = builder.build();
-        ObjectMapper objectMapper = getObjectMapper();
-        String json = objectMapper.writeValueAsString(submitTransactionRequest);
-        RequestBody body = RequestBody.create(MediaType.parse("application/json"), ByteString.encodeUtf8(json));
-        return new Request.Builder().url(url).post(body)
-                //.header("Content-Type", "application/json")
-                .build();
-    }
-
-    private static Request newSubmitBatchTransactionsHttpRequest(String baseUrl, List<SubmitTransactionRequest> submitTransactionRequestList) throws JsonProcessingException {
-        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
-                .addPathSegment("transactions")
-                .addPathSegment("batch");
-        HttpUrl url = builder.build();
-        ObjectMapper objectMapper = getObjectMapper();
-        String json = objectMapper.writeValueAsString(submitTransactionRequestList);
-        RequestBody body = RequestBody.create(MediaType.parse("application/json"), ByteString.encodeUtf8(json));
-        return new Request.Builder().url(url).post(body)
-                .build();
-    }
-
-    private static Request newSimulateTransactionHttpRequest(String baseUrl, SubmitTransactionRequest submitTransactionRequest,
-                                                             Boolean estimateGasUnitPrice, Boolean estimateMaxGasAmount) throws JsonProcessingException {
-
-        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
-                .addPathSegment("transactions")
-                .addPathSegment("simulate");
-        if (estimateGasUnitPrice != null) {
-            builder.addQueryParameter("estimate_gas_unit_price", estimateGasUnitPrice.toString());
-        }
-        if (estimateMaxGasAmount != null) {
-            builder.addQueryParameter("estimate_max_gas_amount", estimateMaxGasAmount.toString());
-        }
-        HttpUrl url = builder.build();
-        ObjectMapper objectMapper = getObjectMapper();
-        String json = objectMapper.writeValueAsString(submitTransactionRequest);
-        RequestBody body = RequestBody.create(MediaType.parse("application/json"), ByteString.encodeUtf8(json));
-        return new Request.Builder().url(url).post(body).build();
-    }
-
-    private static Request newSubmitBcsTransactionHttpRequest(String baseUrl, SignedUserTransaction signedTransaction) throws SerializationError {
-        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
-                .addPathSegment("transactions");
-        HttpUrl url = builder.build();
-        RequestBody body = RequestBody.create(MediaType.parse("application/x.aptos.signed_transaction+bcs"),
-                signedTransaction.bcsSerialize());
-        return new Request.Builder().url(url).post(body)
-                .build();
-    }
-
-    private static Request newSubmitBatchBcsTransactionsHttpRequest(String baseUrl, List<SignedUserTransaction> signedTransactionList) throws SerializationError {
-        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
-                .addPathSegment("transactions")
-                .addPathSegment("batch");
-        HttpUrl url = builder.build();
-        RequestBody body = RequestBody.create(MediaType.parse("application/x.aptos.signed_transaction+bcs"),
-                bcsSerializeSignedUserTransactionList(signedTransactionList));
-        return new Request.Builder().url(url).post(body)
-                .build();
     }
 
     public static byte[] bcsSerializeSignedUserTransactionList(List<SignedUserTransaction> transactions) throws SerializationError {
@@ -116,8 +45,118 @@ public class NodeApiClient {
         return serializer.get_bytes();
     }
 
-    private static Request newSimulateBcsTransactionHttpRequest(String baseUrl, SignedUserTransaction signedTransaction,
-                                                                Boolean estimateGasUnitPrice, Boolean estimateMaxGasAmount) throws SerializationError {
+    //    public static class HttpLogger implements HttpLoggingInterceptor.Logger {
+    //        @Override
+    //        public void log(String message) {
+    //            System.out.println("HttpLogInfo\t" + message);
+    //        }
+    //    }
+
+    public ObjectMapper getObjectMapper() {
+        return objectMapper;
+    }
+
+    public void setObjectMapper(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
+    protected OkHttpClient getOkHttpClient() {
+        //HttpLoggingInterceptor logInterceptor = new HttpLoggingInterceptor(new HttpLogger());
+        //logInterceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+        return new OkHttpClient.Builder()
+                //        .addNetworkInterceptor(logInterceptor)
+                .build();
+    }
+
+    private HttpUrl newGetAccountResourceHttpUrl(String baseUrl, String accountAddress, String resourceType, String ledgerVersion) {
+        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
+                .addPathSegment("accounts")
+                .addPathSegment(accountAddress)
+                .addPathSegment("resource")
+                .addPathSegment(resourceType);
+        if (ledgerVersion != null) {
+            builder.addQueryParameter("ledger_version", ledgerVersion);
+        }
+        return builder.build();
+    }
+
+    private Request newEncodeSubmissionHttpRequest(String baseUrl, EncodeSubmissionRequest request) throws JsonProcessingException {
+        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
+                .addPathSegment("transactions")
+                .addPathSegment("encode_submission");
+        HttpUrl url = builder.build();
+        ObjectMapper objectMapper = getObjectMapper();
+        String json = objectMapper.writeValueAsString(request);
+        RequestBody body = RequestBody.create(MediaType.parse("application/json"), ByteString.encodeUtf8(json));
+        return new Request.Builder().url(url).post(body).build();
+    }
+
+    private Request newSubmitTransactionHttpRequest(String baseUrl, SubmitTransactionRequest submitTransactionRequest) throws JsonProcessingException {
+        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
+                .addPathSegment("transactions");
+        HttpUrl url = builder.build();
+        ObjectMapper objectMapper = getObjectMapper();
+        String json = objectMapper.writeValueAsString(submitTransactionRequest);
+        RequestBody body = RequestBody.create(MediaType.parse("application/json"), ByteString.encodeUtf8(json));
+        return new Request.Builder().url(url).post(body)
+                //.header("Content-Type", "application/json")
+                .build();
+    }
+
+    private Request newSubmitBatchTransactionsHttpRequest(String baseUrl, List<SubmitTransactionRequest> submitTransactionRequestList) throws JsonProcessingException {
+        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
+                .addPathSegment("transactions")
+                .addPathSegment("batch");
+        HttpUrl url = builder.build();
+        ObjectMapper objectMapper = getObjectMapper();
+        String json = objectMapper.writeValueAsString(submitTransactionRequestList);
+        RequestBody body = RequestBody.create(MediaType.parse("application/json"), ByteString.encodeUtf8(json));
+        return new Request.Builder().url(url).post(body)
+                .build();
+    }
+
+    private Request newSimulateTransactionHttpRequest(String baseUrl, SubmitTransactionRequest submitTransactionRequest,
+                                                      Boolean estimateGasUnitPrice, Boolean estimateMaxGasAmount) throws JsonProcessingException {
+
+        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
+                .addPathSegment("transactions")
+                .addPathSegment("simulate");
+        if (estimateGasUnitPrice != null) {
+            builder.addQueryParameter("estimate_gas_unit_price", estimateGasUnitPrice.toString());
+        }
+        if (estimateMaxGasAmount != null) {
+            builder.addQueryParameter("estimate_max_gas_amount", estimateMaxGasAmount.toString());
+        }
+        HttpUrl url = builder.build();
+        ObjectMapper objectMapper = getObjectMapper();
+        String json = objectMapper.writeValueAsString(submitTransactionRequest);
+        RequestBody body = RequestBody.create(MediaType.parse("application/json"), ByteString.encodeUtf8(json));
+        return new Request.Builder().url(url).post(body).build();
+    }
+
+    private Request newSubmitBcsTransactionHttpRequest(String baseUrl, SignedUserTransaction signedTransaction) throws SerializationError {
+        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
+                .addPathSegment("transactions");
+        HttpUrl url = builder.build();
+        RequestBody body = RequestBody.create(MediaType.parse("application/x.aptos.signed_transaction+bcs"),
+                signedTransaction.bcsSerialize());
+        return new Request.Builder().url(url).post(body)
+                .build();
+    }
+
+    private Request newSubmitBatchBcsTransactionsHttpRequest(String baseUrl, List<SignedUserTransaction> signedTransactionList) throws SerializationError {
+        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
+                .addPathSegment("transactions")
+                .addPathSegment("batch");
+        HttpUrl url = builder.build();
+        RequestBody body = RequestBody.create(MediaType.parse("application/x.aptos.signed_transaction+bcs"),
+                bcsSerializeSignedUserTransactionList(signedTransactionList));
+        return new Request.Builder().url(url).post(body)
+                .build();
+    }
+
+    private Request newSimulateBcsTransactionHttpRequest(String baseUrl, SignedUserTransaction signedTransaction,
+                                                         Boolean estimateGasUnitPrice, Boolean estimateMaxGasAmount) throws SerializationError {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("transactions")
                 .addPathSegment("simulate");
@@ -134,15 +173,15 @@ public class NodeApiClient {
                 .build();
     }
 
-    private static Request newEstimateGasPriceRequest(String baseUrl) {
+    private Request newEstimateGasPriceRequest(String baseUrl) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("estimate_gas_price");
         HttpUrl url = builder.build();
         return new Request.Builder().url(url).build();
     }
 
-    private static Request newGetTableItemRequest(String baseUrl, String tableHandle,
-                                                  String keyType, String valueType, Object key, String ledgerVersion) throws JsonProcessingException {
+    private Request newGetTableItemRequest(String baseUrl, String tableHandle,
+                                           String keyType, String valueType, Object key, String ledgerVersion) throws JsonProcessingException {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("tables")
                 .addPathSegment(tableHandle)
@@ -160,9 +199,8 @@ public class NodeApiClient {
         return new Request.Builder().url(url).post(body).build();
     }
 
-
-    private static Request newGetRawTableItemRequest(String baseUrl, String tableHandle,
-                                                     byte[] key, String ledgerVersion) throws JsonProcessingException {
+    private Request newGetRawTableItemRequest(String baseUrl, String tableHandle,
+                                              byte[] key, String ledgerVersion) throws JsonProcessingException {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("tables")
                 .addPathSegment(tableHandle)
@@ -180,31 +218,19 @@ public class NodeApiClient {
                 .build();
     }
 
-    private static Request newGetAccountResourceRequest(String baseUrl, String accountAddress, String resourceType, String ledgerVersion) {
+    private Request newGetAccountResourceRequest(String baseUrl, String accountAddress, String resourceType, String ledgerVersion) {
         HttpUrl url = newGetAccountResourceHttpUrl(baseUrl, accountAddress, resourceType, ledgerVersion);
         return new Request.Builder().url(url).build();
     }
 
-    private static Request newGetRawAccountResourceRequest(String baseUrl, String accountAddress, String resourceType, String ledgerVersion) {
+    private Request newGetRawAccountResourceRequest(String baseUrl, String accountAddress, String resourceType, String ledgerVersion) {
         HttpUrl url = newGetAccountResourceHttpUrl(baseUrl, accountAddress, resourceType, ledgerVersion);
         return new Request.Builder().url(url)
                 .header("Accept", "application/x-bcs")
                 .build();
     }
 
-    private static HttpUrl newGetAccountResourceHttpUrl(String baseUrl, String accountAddress, String resourceType, String ledgerVersion) {
-        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
-                .addPathSegment("accounts")
-                .addPathSegment(accountAddress)
-                .addPathSegment("resource")
-                .addPathSegment(resourceType);
-        if (ledgerVersion != null) {
-            builder.addQueryParameter("ledger_version", ledgerVersion);
-        }
-        return builder.build();
-    }
-
-    private static Request newGetAccountModuleRequest(String baseUrl, String accountAddress, String moduleName, String ledgerVersion) {
+    private Request newGetAccountModuleRequest(String baseUrl, String accountAddress, String moduleName, String ledgerVersion) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
                 .addPathSegment(accountAddress)
@@ -217,7 +243,7 @@ public class NodeApiClient {
         return new Request.Builder().url(url).build();
     }
 
-    private static Request newGetAccountResourcesRequest(String baseUrl, String accountAddress, String ledgerVersion) {
+    private Request newGetAccountResourcesRequest(String baseUrl, String accountAddress, String ledgerVersion) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
                 .addPathSegment(accountAddress)
@@ -229,7 +255,7 @@ public class NodeApiClient {
         return new Request.Builder().url(url).build();
     }
 
-    private static Request newGetAccountModulesRequest(String baseUrl, String accountAddress, String ledgerVersion) {
+    private Request newGetAccountModulesRequest(String baseUrl, String accountAddress, String ledgerVersion) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
                 .addPathSegment(accountAddress)
@@ -241,7 +267,7 @@ public class NodeApiClient {
         return new Request.Builder().url(url).build();
     }
 
-    private static Request newGetAccountRequest(String baseUrl, String accountAddress) {
+    private Request newGetAccountRequest(String baseUrl, String accountAddress) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
                 .addPathSegment(accountAddress);
@@ -249,9 +275,9 @@ public class NodeApiClient {
         return new Request.Builder().url(url).build();
     }
 
-    private static Request newGetEventsRequest(String baseUrl, String accountAddress,
-                                               String eventHandleStruct, String eventHandleFieldName,
-                                               Long start, Integer limit) {
+    private Request newGetEventsRequest(String baseUrl, String accountAddress,
+                                        String eventHandleStruct, String eventHandleFieldName,
+                                        Long start, Integer limit) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
                 .addPathSegment(accountAddress)
@@ -268,8 +294,8 @@ public class NodeApiClient {
         return new Request.Builder().url(url).build();
     }
 
-    private static Request newGetEventsByCreationNumberRequest(String baseUrl, String accountAddress,
-                                                               String creationNumber, Long start, Integer limit) {
+    private Request newGetEventsByCreationNumberRequest(String baseUrl, String accountAddress,
+                                                        String creationNumber, Long start, Integer limit) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
                 .addPathSegment(accountAddress)
@@ -285,7 +311,7 @@ public class NodeApiClient {
         return new Request.Builder().url(url).build();
     }
 
-    private static Request newGetEventsRequest(String baseUrl, String eventKey, Long start, Integer limit) {
+    private Request newGetEventsRequest(String baseUrl, String eventKey, Long start, Integer limit) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("events")
                 .addPathSegment(eventKey);
@@ -299,7 +325,7 @@ public class NodeApiClient {
         return new Request.Builder().url(url).build();
     }
 
-    private static Request newGetTransactionByHashRequest(String baseUrl, String hash) {
+    private Request newGetTransactionByHashRequest(String baseUrl, String hash) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("transactions")
                 .addPathSegment("by_hash")
@@ -308,7 +334,7 @@ public class NodeApiClient {
         return new Request.Builder().url(url).build();
     }
 
-    private static Request newGetTransactionByVersionRequest(String baseUrl, String version) {
+    private Request newGetTransactionByVersionRequest(String baseUrl, String version) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("transactions")
                 .addPathSegment("by_version")
@@ -317,7 +343,7 @@ public class NodeApiClient {
         return new Request.Builder().url(url).build();
     }
 
-    private static Request newGetAccountTransactionsRequest(String baseUrl, String accountAddress, Long start, Integer limit) {
+    private Request newGetAccountTransactionsRequest(String baseUrl, String accountAddress, Long start, Integer limit) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("accounts")
                 .addPathSegment(accountAddress)
@@ -332,7 +358,7 @@ public class NodeApiClient {
         return new Request.Builder().url(url).build();
     }
 
-    private static Request newGetBlockByHeightRequest(String baseUrl, String height, Boolean withTransactions) {
+    private Request newGetBlockByHeightRequest(String baseUrl, String height, Boolean withTransactions) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("blocks")
                 .addPathSegment("by_height")
@@ -344,7 +370,7 @@ public class NodeApiClient {
         return new Request.Builder().url(url).build();
     }
 
-    private static Request newGetBlockByVersionRequest(String baseUrl, String height, Boolean withTransactions) {
+    private Request newGetBlockByVersionRequest(String baseUrl, String height, Boolean withTransactions) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("blocks")
                 .addPathSegment("by_version")
@@ -356,7 +382,7 @@ public class NodeApiClient {
         return new Request.Builder().url(url).build();
     }
 
-    private static Request newCheckBasicNodeHealthRequest(String baseUrl, Integer durationSecs) {
+    private Request newCheckBasicNodeHealthRequest(String baseUrl, Integer durationSecs) {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("-")
                 .addPathSegment("healthy");
@@ -367,24 +393,24 @@ public class NodeApiClient {
         return new Request.Builder().url(url).build();
     }
 
-    private static <T> T readResponseBody(Response response, Class<T> clazz) throws IOException {
+    private <T> T readResponseBody(Response response, Class<T> clazz) throws IOException {
         ObjectMapper objectMapper = getObjectMapper();
         return objectMapper.readValue(response.body().string(), clazz);
     }
 
-    private static <T> List<T> readResponseBodyAsList(Response response, Class<T> elementType) throws IOException {
+    private <T> List<T> readResponseBodyAsList(Response response, Class<T> elementType) throws IOException {
         ObjectMapper objectMapper = getObjectMapper();
         return objectMapper.readValue(response.body().string(),
                 objectMapper.getTypeFactory().constructCollectionType(List.class, elementType));
     }
 
-    private static Object readResponseBodyAsParametricType(Response response, Class<?> parametrized, Class<?>... parameterClasses) throws IOException {
+    private Object readResponseBodyAsParametricType(Response response, Class<?> parametrized, Class<?>... parameterClasses) throws IOException {
         ObjectMapper objectMapper = getObjectMapper();
         return objectMapper.readValue(response.body().string(),
                 objectMapper.getTypeFactory().constructParametricType(parametrized, parameterClasses));
     }
 
-    private static void throwNodeApiException(Response response) {
+    private void throwNodeApiException(Response response) {
         ObjectMapper objectMapper = getObjectMapper();
         AptosError aptosError;
         try {
@@ -394,21 +420,6 @@ public class NodeApiClient {
         }
         throw new NodeApiException(response.code(), aptosError, response.request().url().toString(), null);
     }
-
-    protected OkHttpClient getOkHttpClient() {
-        //HttpLoggingInterceptor logInterceptor = new HttpLoggingInterceptor(new HttpLogger());
-        //logInterceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
-        return new OkHttpClient.Builder()
-                //        .addNetworkInterceptor(logInterceptor)
-                .build();
-    }
-
-    //    public static class HttpLogger implements HttpLoggingInterceptor.Logger {
-    //        @Override
-    //        public void log(String message) {
-    //            System.out.println("HttpLogInfo\t" + message);
-    //        }
-    //    }
 
     public RawTransaction newRawTransaction(String senderAddress,
                                             String moduleAddress, String moduleName, String functionName,
