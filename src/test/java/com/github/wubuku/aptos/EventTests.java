@@ -56,7 +56,7 @@ public class EventTests {
         String resourceAccountAddress = "0x427a45134e0bbfc962c576a7804eb6b3f1ad2d3d885f6bee6f27d91aca96df5b";
         String eventHandleStruct = "0x2239450816c09cef0202c090ec15f648a33e3fff0209167cad1ef6830b1d5d1f::day_summary::Events";
         String eventHandleFieldName = "day_summary_created_handle";
-        Long start = 0L;//0L;
+        Long start = 10L;//0L;
         Integer limit = 1;
         List<Event<DaySummaryCreated>> events_1 = NodeApiUtils.getEventsByEventHandle(baseUrl, resourceAccountAddress,
                 eventHandleStruct, eventHandleFieldName,
