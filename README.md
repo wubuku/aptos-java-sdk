@@ -10,6 +10,8 @@ This SDK is licensed under [Apache 2.0](https://github.com/aptos-labs/aptos-core
 
 Add the following dependency to the project's `pom.xml` file.
 
+Alternatively, you can import the dependency via https://jitpack.io (recommended).
+
 ```xml
 <dependency>
     <groupId>com.github.wubuku</groupId>
