@@ -557,6 +557,7 @@ public class NodeApiClient {
         }
     }
 
+    @SuppressWarnings("rawtypes")
     public List<Event> getEventsByEventHandle(String accountAddress,
                                               String eventHandleStruct, String eventHandleFieldName,
                                               Long start, Integer limit) throws IOException {
@@ -620,7 +621,7 @@ public class NodeApiClient {
         ObjectMapper objectMapper = getObjectMapper();
         List<Map<String, Object>> mapList = objectMapper.readValue(json,
                 objectMapper.getTypeFactory().constructCollectionType(List.class, Map.class));
-        return mapList.stream().map(map -> (Event<TData>) objectMapper.convertValue(map,
+        return mapList.stream().map(map -> objectMapper.<Event<TData>>convertValue(map,
                         objectMapper.getTypeFactory().constructParametricType(Event.class, eventDataType)))
                 .collect(Collectors.toList());
     }
@@ -683,6 +684,32 @@ public class NodeApiClient {
         }
     }
 
+    /**
+     * Retrieves account resources whose type matches the given regular expression pattern.
+     *
+     * @param typeRegex a regular expression to match resource types
+     * @return list of matching account resources
+     */
+    @SuppressWarnings("rawtypes")
+    public <TData> List<AccountResource<TData>> getAccountResourcesMatchingType(
+            String accountAddress, String typeRegex, Class<TData> dataType,
+            String ledgerVersion) throws IOException {
+        Request request = newGetAccountResourcesRequest(baseUrl, accountAddress, ledgerVersion);
+        OkHttpClient client = getOkHttpClient();
+        try (Response response = client.newCall(request).execute()) {
+            if (response.code() >= 400) {
+                throwNodeApiException(response);
+            }
+            List<AccountResource> rawResources = readResponseBodyAsList(response, AccountResource.class);
+            return rawResources.stream().filter(resource -> resource.getType().matches(typeRegex))
+                    .map(r -> new AccountResource<>(
+                            r.getType(), objectMapper.convertValue(r.getData(), dataType)
+                    ))
+                    .collect(Collectors.toList());
+        }
+    }
+
+    @SuppressWarnings("rawtypes")
     public List<AccountResource> getAccountResources(String accountAddress,
                                                      String ledgerVersion) throws IOException {
         Request request = newGetAccountResourcesRequest(baseUrl, accountAddress, ledgerVersion);

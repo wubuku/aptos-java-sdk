@@ -26,6 +26,14 @@ public class AccountResource<TData> {
         this.data = data;
     }
 
+    public AccountResource(String type, TData data) {
+        this.type = type;
+        this.data = data;
+    }
+
+    public AccountResource() {
+    }
+
     @Override
     public String toString() {
         return "AccountResource{" +
