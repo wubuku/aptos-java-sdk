@@ -10,10 +10,12 @@ import com.github.wubuku.aptos.types.TypeTag;
 import com.novi.serde.Bytes;
 import com.novi.serde.SerializationError;
 import okhttp3.*;
-import okio.ByteString;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
 
 public class NodeApiClient {
     public static final long DEFAULT_MAX_GAS_AMOUNT = 400000L;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(NodeApiClient.class);
 
     private final String baseUrl;
 
@@ -87,7 +91,10 @@ public class NodeApiClient {
         HttpUrl url = builder.build();
         ObjectMapper objectMapper = getObjectMapper();
         String json = objectMapper.writeValueAsString(request);
-        RequestBody body = RequestBody.create(MediaType.parse("application/json"), ByteString.encodeUtf8(json));
+        RequestBody body = RequestBody.create(
+                json,
+                MediaType.get("application/json")
+        );
         return new Request.Builder().url(url).post(body).build();
     }
 
@@ -97,7 +104,10 @@ public class NodeApiClient {
         HttpUrl url = builder.build();
         ObjectMapper objectMapper = getObjectMapper();
         String json = objectMapper.writeValueAsString(submitTransactionRequest);
-        RequestBody body = RequestBody.create(MediaType.parse("application/json"), ByteString.encodeUtf8(json));
+        RequestBody body = RequestBody.create(
+                json,
+                MediaType.get("application/json")
+        );
         return new Request.Builder().url(url).post(body)
                 //.header("Content-Type", "application/json")
                 .build();
@@ -110,7 +120,10 @@ public class NodeApiClient {
         HttpUrl url = builder.build();
         ObjectMapper objectMapper = getObjectMapper();
         String json = objectMapper.writeValueAsString(submitTransactionRequestList);
-        RequestBody body = RequestBody.create(MediaType.parse("application/json"), ByteString.encodeUtf8(json));
+        RequestBody body = RequestBody.create(
+                json,
+                MediaType.get("application/json")
+        );
         return new Request.Builder().url(url).post(body)
                 .build();
     }
@@ -130,7 +143,10 @@ public class NodeApiClient {
         HttpUrl url = builder.build();
         ObjectMapper objectMapper = getObjectMapper();
         String json = objectMapper.writeValueAsString(submitTransactionRequest);
-        RequestBody body = RequestBody.create(MediaType.parse("application/json"), ByteString.encodeUtf8(json));
+        RequestBody body = RequestBody.create(
+                json,
+                MediaType.get("application/json")
+        );
         return new Request.Builder().url(url).post(body).build();
     }
 
@@ -138,8 +154,10 @@ public class NodeApiClient {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("transactions");
         HttpUrl url = builder.build();
-        RequestBody body = RequestBody.create(MediaType.parse("application/x.aptos.signed_transaction+bcs"),
-                signedTransaction.bcsSerialize());
+        RequestBody body = RequestBody.create(
+                signedTransaction.bcsSerialize(),
+                MediaType.get("application/x.aptos.signed_transaction+bcs")
+        );
         return new Request.Builder().url(url).post(body)
                 .build();
     }
@@ -149,8 +167,10 @@ public class NodeApiClient {
                 .addPathSegment("transactions")
                 .addPathSegment("batch");
         HttpUrl url = builder.build();
-        RequestBody body = RequestBody.create(MediaType.parse("application/x.aptos.signed_transaction+bcs"),
-                bcsSerializeSignedUserTransactionList(signedTransactionList));
+        RequestBody body = RequestBody.create(
+                bcsSerializeSignedUserTransactionList(signedTransactionList),
+                MediaType.get("application/x.aptos.signed_transaction+bcs")
+        );
         return new Request.Builder().url(url).post(body)
                 .build();
     }
@@ -167,8 +187,10 @@ public class NodeApiClient {
             builder.addQueryParameter("estimate_max_gas_amount", estimateMaxGasAmount.toString());
         }
         HttpUrl url = builder.build();
-        RequestBody body = RequestBody.create(MediaType.parse("application/x.aptos.signed_transaction+bcs"),
-                signedTransaction.bcsSerialize());
+        RequestBody body = RequestBody.create(
+                signedTransaction.bcsSerialize(),
+                MediaType.get("application/x.aptos.signed_transaction+bcs")
+        );
         return new Request.Builder().url(url).post(body)
                 .build();
     }
@@ -195,7 +217,10 @@ public class NodeApiClient {
         bodyMap.put("key_type", keyType);
         bodyMap.put("value_type", valueType);
         bodyMap.put("key", key);
-        RequestBody body = RequestBody.create(MediaType.parse("application/json"), objectMapper.writeValueAsString(bodyMap));
+        RequestBody body = RequestBody.create(
+                objectMapper.writeValueAsString(bodyMap),
+                MediaType.get("application/json")
+        );
         return new Request.Builder().url(url).post(body).build();
     }
 
@@ -212,7 +237,10 @@ public class NodeApiClient {
         ObjectMapper objectMapper = getObjectMapper();
         Map<String, Object> bodyMap = new LinkedHashMap<>();
         bodyMap.put("key", HexUtils.byteArrayToHexWithPrefix(key));
-        RequestBody body = RequestBody.create(MediaType.parse("application/json"), objectMapper.writeValueAsString(bodyMap));
+        RequestBody body = RequestBody.create(
+                objectMapper.writeValueAsString(bodyMap),
+                MediaType.get("application/json")
+        );
         return new Request.Builder().url(url).post(body)
                 .header("Accept", "application/x-bcs")
                 .build();
@@ -394,31 +422,54 @@ public class NodeApiClient {
     }
 
     private <T> T readResponseBody(Response response, Class<T> clazz) throws IOException {
-        ObjectMapper objectMapper = getObjectMapper();
-        return objectMapper.readValue(response.body().string(), clazz);
+        String responseBody = response.body().string();
+        try {
+            return objectMapper.readValue(responseBody, clazz);
+        } catch (JsonProcessingException e) {
+            LOGGER.error("Failed to deserialize response body to class {}: body={}", clazz.getName(), responseBody, e);
+            throw e;
+        }
     }
 
     private <T> List<T> readResponseBodyAsList(Response response, Class<T> elementType) throws IOException {
-        ObjectMapper objectMapper = getObjectMapper();
-        return objectMapper.readValue(response.body().string(),
-                objectMapper.getTypeFactory().constructCollectionType(List.class, elementType));
+        String responseBody = response.body().string();
+        try {
+            return objectMapper.readValue(responseBody,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, elementType));
+        } catch (JsonProcessingException e) {
+            LOGGER.error("Failed to deserialize response body to list of {}: body={}", elementType.getName(), responseBody, e);
+            throw e;
+        }
     }
 
     private Object readResponseBodyAsParametricType(Response response, Class<?> parametrized, Class<?>... parameterClasses) throws IOException {
-        ObjectMapper objectMapper = getObjectMapper();
-        return objectMapper.readValue(response.body().string(),
-                objectMapper.getTypeFactory().constructParametricType(parametrized, parameterClasses));
+        String responseBody = response.body().string();
+        try {
+            return objectMapper.readValue(responseBody,
+                    objectMapper.getTypeFactory().constructParametricType(parametrized, parameterClasses));
+        } catch (JsonProcessingException e) {
+            LOGGER.error("Failed to deserialize response body to parametric type {}<{}>: body={}",
+                    parametrized.getName(),
+                    Arrays.stream(parameterClasses).map(Class::getName).collect(Collectors.joining(",")),
+                    responseBody,
+                    e);
+            throw e;
+        }
     }
 
     private void throwNodeApiException(Response response) {
-        ObjectMapper objectMapper = getObjectMapper();
-        AptosError aptosError;
+        String responseBody;
         try {
-            aptosError = objectMapper.readValue(response.body().string(), AptosError.class);
+            responseBody = response.body().string();
+            AptosError aptosError = objectMapper.readValue(responseBody, AptosError.class);
+            throw new NodeApiException(response.code(), aptosError, response.request().url().toString(), null);
         } catch (IOException e) {
+            LOGGER.error("Failed to deserialize error response: url={}, code={}",
+                    response.request().url(),
+                    response.code(),
+                    e);
             throw new NodeApiException(response.code(), null, response.request().url().toString(), e);
         }
-        throw new NodeApiException(response.code(), aptosError, response.request().url().toString(), null);
     }
 
     public RawTransaction newRawTransaction(String senderAddress,
@@ -618,12 +669,17 @@ public class NodeApiClient {
     }
 
     private <TData> List<Event<TData>> readEventList(String json, Class<TData> eventDataType) throws JsonProcessingException {
-        ObjectMapper objectMapper = getObjectMapper();
-        List<Map<String, Object>> mapList = objectMapper.readValue(json,
-                objectMapper.getTypeFactory().constructCollectionType(List.class, Map.class));
-        return mapList.stream().map(map -> objectMapper.<Event<TData>>convertValue(map,
-                        objectMapper.getTypeFactory().constructParametricType(Event.class, eventDataType)))
-                .collect(Collectors.toList());
+        try {
+            ObjectMapper objectMapper = getObjectMapper();
+            List<Map<String, Object>> mapList = objectMapper.readValue(json,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, Map.class));
+            return mapList.stream().map(map -> objectMapper.<Event<TData>>convertValue(map,
+                            objectMapper.getTypeFactory().constructParametricType(Event.class, eventDataType)))
+                    .collect(Collectors.toList());
+        } catch (JsonProcessingException e) {
+            LOGGER.error("Failed to deserialize event list for type {}: json={}", eventDataType.getName(), json, e);
+            throw e;
+        }
     }
 
     /**
