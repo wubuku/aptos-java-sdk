@@ -1,10 +1,12 @@
 package com.github.wubuku.aptos.bean;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
 import java.util.Collections;
 import java.util.List;
 
+@JsonDeserialize(using = OptionDeserializer.class)
 public class Option<T> {
     @JsonProperty("vec")
     private List<T> vec;
