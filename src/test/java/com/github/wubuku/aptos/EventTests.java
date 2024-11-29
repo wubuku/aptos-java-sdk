@@ -13,6 +13,8 @@ import com.github.wubuku.aptos.utils.NodeApiUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -108,6 +110,17 @@ public class EventTests {
         );
         System.out.println("# getTableItem:");
         System.out.println(toJson(v));
+    }
+
+    @Test
+    void testViewFunctions() throws IOException {
+        String url = "https://aptos.testnet.porto.movementlabs.xyz/v1";
+        NodeApiClient nodeApiClient = new NodeApiClient(url);
+        Integer decimals = nodeApiClient.viewFunction("0x1::coin::decimals",
+                Collections.singletonList("0x1::aptos_coin::AptosCoin"),
+                null, null, Integer.class
+        );
+        System.out.println(decimals);
     }
 
     String toJson(Object obj) {

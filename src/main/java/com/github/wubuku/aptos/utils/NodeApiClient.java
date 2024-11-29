@@ -10,15 +10,13 @@ import com.github.wubuku.aptos.types.TypeTag;
 import com.novi.serde.Bytes;
 import com.novi.serde.SerializationError;
 import okhttp3.*;
+import okhttp3.logging.HttpLoggingInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class NodeApiClient {
@@ -49,13 +47,6 @@ public class NodeApiClient {
         return serializer.get_bytes();
     }
 
-    //    public static class HttpLogger implements HttpLoggingInterceptor.Logger {
-    //        @Override
-    //        public void log(String message) {
-    //            System.out.println("HttpLogInfo\t" + message);
-    //        }
-    //    }
-
     public ObjectMapper getObjectMapper() {
         return objectMapper;
     }
@@ -68,7 +59,7 @@ public class NodeApiClient {
         //HttpLoggingInterceptor logInterceptor = new HttpLoggingInterceptor(new HttpLogger());
         //logInterceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
         return new OkHttpClient.Builder()
-                //        .addNetworkInterceptor(logInterceptor)
+                //.addNetworkInterceptor(logInterceptor)
                 .build();
     }
 
@@ -89,11 +80,10 @@ public class NodeApiClient {
                 .addPathSegment("transactions")
                 .addPathSegment("encode_submission");
         HttpUrl url = builder.build();
-        ObjectMapper objectMapper = getObjectMapper();
         String json = objectMapper.writeValueAsString(request);
         RequestBody body = RequestBody.create(
-                json,
-                MediaType.get("application/json")
+                okio.ByteString.encodeUtf8(json),
+                MediaType.parse("application/json")
         );
         return new Request.Builder().url(url).post(body).build();
     }
@@ -102,15 +92,12 @@ public class NodeApiClient {
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("transactions");
         HttpUrl url = builder.build();
-        ObjectMapper objectMapper = getObjectMapper();
         String json = objectMapper.writeValueAsString(submitTransactionRequest);
         RequestBody body = RequestBody.create(
-                json,
-                MediaType.get("application/json")
+                okio.ByteString.encodeUtf8(json),
+                MediaType.parse("application/json")
         );
-        return new Request.Builder().url(url).post(body)
-                //.header("Content-Type", "application/json")
-                .build();
+        return new Request.Builder().url(url).post(body).build();
     }
 
     private Request newSubmitBatchTransactionsHttpRequest(String baseUrl, List<SubmitTransactionRequest> submitTransactionRequestList) throws JsonProcessingException {
@@ -118,19 +105,16 @@ public class NodeApiClient {
                 .addPathSegment("transactions")
                 .addPathSegment("batch");
         HttpUrl url = builder.build();
-        ObjectMapper objectMapper = getObjectMapper();
         String json = objectMapper.writeValueAsString(submitTransactionRequestList);
         RequestBody body = RequestBody.create(
-                json,
-                MediaType.get("application/json")
+                okio.ByteString.encodeUtf8(json),
+                MediaType.parse("application/json")
         );
-        return new Request.Builder().url(url).post(body)
-                .build();
+        return new Request.Builder().url(url).post(body).build();
     }
 
     private Request newSimulateTransactionHttpRequest(String baseUrl, SubmitTransactionRequest submitTransactionRequest,
                                                       Boolean estimateGasUnitPrice, Boolean estimateMaxGasAmount) throws JsonProcessingException {
-
         HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
                 .addPathSegment("transactions")
                 .addPathSegment("simulate");
@@ -141,11 +125,10 @@ public class NodeApiClient {
             builder.addQueryParameter("estimate_max_gas_amount", estimateMaxGasAmount.toString());
         }
         HttpUrl url = builder.build();
-        ObjectMapper objectMapper = getObjectMapper();
         String json = objectMapper.writeValueAsString(submitTransactionRequest);
         RequestBody body = RequestBody.create(
-                json,
-                MediaType.get("application/json")
+                okio.ByteString.encodeUtf8(json),
+                MediaType.parse("application/json")
         );
         return new Request.Builder().url(url).post(body).build();
     }
@@ -212,14 +195,14 @@ public class NodeApiClient {
             builder.addQueryParameter("ledger_version", ledgerVersion);
         }
         HttpUrl url = builder.build();
-        ObjectMapper objectMapper = getObjectMapper();
         Map<String, Object> bodyMap = new LinkedHashMap<>();
         bodyMap.put("key_type", keyType);
         bodyMap.put("value_type", valueType);
         bodyMap.put("key", key);
+        String json = objectMapper.writeValueAsString(bodyMap);
         RequestBody body = RequestBody.create(
-                objectMapper.writeValueAsString(bodyMap),
-                MediaType.get("application/json")
+                okio.ByteString.encodeUtf8(json),
+                MediaType.parse("application/json")
         );
         return new Request.Builder().url(url).post(body).build();
     }
@@ -234,12 +217,12 @@ public class NodeApiClient {
             builder.addQueryParameter("ledger_version", ledgerVersion);
         }
         HttpUrl url = builder.build();
-        ObjectMapper objectMapper = getObjectMapper();
         Map<String, Object> bodyMap = new LinkedHashMap<>();
         bodyMap.put("key", HexUtils.byteArrayToHexWithPrefix(key));
+        String json = objectMapper.writeValueAsString(bodyMap);
         RequestBody body = RequestBody.create(
-                objectMapper.writeValueAsString(bodyMap),
-                MediaType.get("application/json")
+                okio.ByteString.encodeUtf8(json),
+                MediaType.parse("application/json")
         );
         return new Request.Builder().url(url).post(body)
                 .header("Accept", "application/x-bcs")
@@ -499,7 +482,6 @@ public class NodeApiClient {
     public Integer getGasUnitPrice() throws IOException {
         return estimateGasPrice().getGasEstimate();
     }
-
 
     public LedgerInfo getLedgerInfo() throws IOException {
         HttpUrl url = HttpUrl.parse(baseUrl);
@@ -830,6 +812,59 @@ public class NodeApiClient {
         }
     }
 
+    private Request newViewFunctionRequest(String baseUrl, String functionId,
+                                           List<String> typeArguments, List<Object> arguments,
+                                           String ledgerVersion) throws JsonProcessingException {
+        HttpUrl.Builder builder = HttpUrl.parse(baseUrl).newBuilder()
+                .addPathSegment("view");
+        if (ledgerVersion != null) {
+            builder.addQueryParameter("ledger_version", ledgerVersion);
+        }
+        HttpUrl url = builder.build();
+
+        Map<String, Object> bodyMap = new LinkedHashMap<>();
+        bodyMap.put("function", functionId);
+        bodyMap.put("type_arguments", typeArguments != null ? typeArguments : Collections.emptyList());
+        bodyMap.put("arguments", arguments != null ? arguments : Collections.emptyList());
+        ObjectMapper objectMapper = getObjectMapper();
+        String json = objectMapper.writeValueAsString(bodyMap);
+
+        RequestBody body = RequestBody.create(
+                okio.ByteString.encodeUtf8(json),
+                MediaType.parse("application/json")
+        );
+
+        return new Request.Builder()
+                .url(url)
+                .post(body)
+                .build();
+    }
+
+    public Object viewFunction(String functionId,
+                               List<String> typeArguments, List<Object> arguments,
+                               String ledgerVersion) throws IOException {
+        Request request = newViewFunctionRequest(baseUrl, functionId, typeArguments, arguments, ledgerVersion);
+        OkHttpClient client = getOkHttpClient();
+        try (Response response = client.newCall(request).execute()) {
+            if (response.code() >= 400) {
+                throwNodeApiException(response);
+            }
+            // The response is an array
+            return readResponseBodyAsList(response, Object.class);
+        }
+    }
+
+    public <T> T viewFunction(String functionId,
+                              List<String> typeArguments, List<Object> arguments,
+                              String ledgerVersion, Class<T> returnType) throws IOException {
+        List<?> result = (List<?>) viewFunction(functionId, typeArguments, arguments, ledgerVersion);
+        if (result != null && !result.isEmpty()) {
+            Object firstElement = result.get(0);
+            return objectMapper.convertValue(firstElement, returnType);
+        }
+        return null;
+    }
+
     public Transaction submitBcsTransaction(SignedUserTransaction signedTransaction) throws IOException, SerializationError {
         Request httpRequest = newSubmitBcsTransactionHttpRequest(baseUrl, signedTransaction);
         OkHttpClient client = getOkHttpClient();
@@ -930,6 +965,13 @@ public class NodeApiClient {
 
     public String getAccountSequenceNumber(String sender) {
         return getAccount(sender).getSequenceNumber();
+    }
+
+    public static class HttpLogger implements HttpLoggingInterceptor.Logger {
+        @Override
+        public void log(String message) {
+            System.out.println("HttpLogInfo\t" + message);
+        }
     }
 
 //    private static String formatPathSegmentAccountAddress(String accountAddress) {
