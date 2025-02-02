@@ -1,7 +1,9 @@
 package com.github.wubuku.aptos;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.wubuku.aptos.bean.AptosObject;
 import com.github.wubuku.aptos.bean.Option;
 import org.junit.jupiter.api.Test;
 
@@ -303,6 +305,22 @@ public class OptionDeserializerTests {
                     objectMapper.getTypeFactory().constructParametricType(Option.class, Double.class));
         });
     }
+
+    @Test
+    public void testOptionObjectDeserialization() throws JsonProcessingException {
+        String json = "{\n" +
+                "            \"vec\": [\n" +
+                "              {\n" +
+                "                \"inner\": \"0x71332984cb209500001bb4b4f741630f86adaaaf40614eb5b3d2dbf47d07064\"\n" +
+                "              }\n" +
+                "            ]\n" +
+                "          }";
+        Option<AptosObject> x = objectMapper.readValue(json,
+                objectMapper.getTypeFactory().constructParametricType(Option.class, AptosObject.class)
+        );
+        System.out.println(x);
+    }
+
 
     static class TestObject {
         private String name;
