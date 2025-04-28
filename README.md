@@ -1,5 +1,7 @@
 # Aptos Java SDK
 
+[![DeepWiki](https://img.shields.io/badge/DeepWiki-Docs-blue?logo=read-the-docs)](https://deepwiki.com/wubuku/aptos-java-sdk)
+
 This is an Aptos Java SDK. [Aptos](https://github.com/aptos-labs/aptos-core) is a scalable layer one blockchain solution.
 
 This SDK is licensed under [Apache 2.0](https://github.com/aptos-labs/aptos-core/blob/main/LICENSE).
